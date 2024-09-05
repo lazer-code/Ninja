@@ -53,11 +53,11 @@
 }
 
 .menu-toggle {
-  width: 3%;
+  width: 30px;
   cursor: pointer;
   position: fixed;
   top: 10px;
-  left: 1%;
+  left: 50px;
   z-index: 1000;
 }
 
