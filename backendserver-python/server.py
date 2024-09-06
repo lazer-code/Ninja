@@ -2,9 +2,12 @@ import asyncio
 import websockets
 
 async def handler(websocket, path):
-    async for message in websocket:
-        # Process message and send response
-        await websocket.send(f"{message}")
+    try:
+        async for message in websocket:
+            # Process message and send response
+            await websocket.send(f"{message}")
+    except Exception:
+        pass
 
 start_server = websockets.serve(handler, "localhost", 8000)
 
