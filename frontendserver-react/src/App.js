@@ -1,30 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import './Menu.css';
 
 function App() {
   const [query, setQuery] = useState('');
   const [title, setTitle] = useState('Ninjas');
+  const ws = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (query) {
-          const encodedQuery = encodeURIComponent(query); // Encode the query
-          const response = await fetch(`http://localhost:8000/search?query=${encodedQuery}`);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.text(); // Read response as text
-          console.log('Response data:', data); // Log response data
-          setTitle(data.trim()); // Update title
-        }
-      } catch (error) {
-        console.error('Failed to fetch:', error);
-      }
-    };
+    ws.current = new WebSocket('ws://localhost:8000');
 
-    fetchData();
+    ws.current.onopen = () => console.log('WebSocket connection established');
+    ws.current.onmessage = (event) => {
+      setTitle(event.data.trim()); // Update title with server response
+    };
+    ws.current.onclose = () => console.log('WebSocket connection closed');
+    ws.current.onerror = (error) => console.error('WebSocket error:', error);
+
+    return () => ws.current.close();
+  }, []);
+
+  useEffect(() => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN && query) {
+      ws.current.send(query);
+    }
   }, [query]);
 
   const handleChange = (e) => {
@@ -51,7 +50,9 @@ function App() {
       <div className="body-container">
         <div className="container" id="container">
           <div className="overlay">
-            <h1>Hall of {title}</h1>
+            <h1>Hall of</h1>
+            <h2>Ninjas</h2>
+            <h3>{title}</h3>
           </div>
         </div>
       </div>
