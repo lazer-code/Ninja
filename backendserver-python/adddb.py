@@ -12,13 +12,13 @@ for root, dirs, files in os.walk(target_folder):
             json_data = json.loads(file.read())
             json_data = json_data['objects'][0]
 
-            id = json_data['id']
-            name = json_data['name']
-            description = json_data['description']
-            x_mitre_platforms = json_data['x_mitre_platforms']
-            x_mitre_detection = json_data['x_mitre_detection']
-            phase_name = json_data['phase_name']
-            result = {'id': json_data['id'], 'name': json_data['name'], 'description': json_data['description'], 'x_mitre_platforms': json_data['x_mitre_platforms'], 'x_mitre_detection': json_data['x_mitre_detection']}
+            id = json_data.get('id', 'NA')
+            name = json_data.get('name', 'NA')
+            description = json_data.get('description', 'NA')
+            x_mitre_platforms = json_data.get('x_mitre_platforms', 'NA')
+            x_mitre_detection = json_data.get('x_mitre_detection', 'NA')
+            phase_name = json_data.get('phase_name', 'NA')
+            result = {'id': id, 'name': name, 'description': description, 'x_mitre_platforms': x_mitre_platforms, 'x_mitre_detection': x_mitre_detection, 'phase_name': phase_name}
             attacks.append(result)
 
 print(attacks)
