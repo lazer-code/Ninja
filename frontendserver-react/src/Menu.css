@@ -1,13 +1,17 @@
 .menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #474747;
+    z-index: 1000;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #474747;
-    padding: 0 2%;
-    position: relative;
-    height: 70px;
-  }
+    padding: 30px;
+}
   
+
 .menu .home {
     font-weight: bolder;
     flex: 1;
