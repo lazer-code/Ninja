@@ -1,0 +1,48 @@
+.menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #474747;
+    padding: 0 2%;
+    position: relative;
+    height: 70px;
+  }
+  
+.menu .home {
+    font-weight: bolder;
+    flex: 1;
+}
+
+.menu .home a:hover {
+    color: indianred;
+}
+
+.menu .search {
+    flex: 2;
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.menu input[type="text"] {
+    border: 2px solid #fff;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 5% 100%;
+    outline: none;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.menu input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.menu input:focus,
+.menu input:hover {
+    border-color: indianred;
+}
