@@ -3,7 +3,7 @@ import './App.css';
 import './Menu.css';
 
 function App() {
-  const [query, setQuery] = useState('All');
+  const [query, setQuery] = useState('');
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
   const ws = useRef(null);
@@ -11,20 +11,29 @@ function App() {
   useEffect(() => {
     ws.current = new WebSocket('ws://localhost:8000');
 
-    ws.current.onopen = () => console.log('WebSocket connection established');
+    ws.current.onopen = () => {
+      console.log('WebSocket connection established');
+      ws.current.send('All');
+    };
+
     ws.current.onmessage = (event) => {
       try {
         const parsedData = JSON.parse(event.data);
-
-        // Check if parsed data is an array and contains the expected fields
-        if (Array.isArray(parsedData) && parsedData.length > 0) {
+        if (Array.isArray(parsedData) && parsedData.length > 0)
+        {
           setData(parsedData);
           setHasResults(true);
-        } else {
+        }
+        
+        else
+        {
           setData([]);
           setHasResults(false);
         }
-      } catch (error) {
+      }
+
+      catch (error)
+      {
         console.error('Error parsing JSON:', error);
         setData([]);
         setHasResults(false);
@@ -38,11 +47,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN)
       ws.current.send(query || 'All');
-    }
   }, [query]);
-  
 
   const handleChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
