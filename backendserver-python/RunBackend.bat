@@ -7,10 +7,6 @@ cls
 echo Initiating database
 python InitiateDatabase.py
 echo Done
-
-pause
-cls
-
 echo Starting the server
 python server.py
 pause

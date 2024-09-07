@@ -39,11 +39,10 @@ function App() {
 
   useEffect(() => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      if (query) {
-        ws.current.send(query);
-      }
+      ws.current.send(query || 'All');
     }
   }, [query]);
+  
 
   const handleChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
@@ -78,7 +77,7 @@ function App() {
       <div className="content-body-container">
         <div className="content-container" id="content-container">
           <div>
-            <h2>Results - {query}</h2>
+            <h2>Results - {query || 'All'}</h2>
             {hasResults ? (
               <ul>
                 {data.map((item, index) => (
