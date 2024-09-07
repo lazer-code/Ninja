@@ -13,11 +13,21 @@ body {
 
 title1 {
   font-weight: bold;
-  margin: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
   font-size: 54px;
   color: white;
-  direction: rtl;
+  text-align: left;
+  direction: ltr;
+}
+
+title2 {
+  font-weight: bold;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  font-size: 36px;
+  color: white;
+  text-align: left;
+  direction: ltr;
 }
 
 h1 {
@@ -25,9 +35,9 @@ h1 {
   margin-top: 20px;
   margin-bottom: 20px;
   font-size: 54px;
-  color: white;
+  color: lawngreen;
   text-align: left;
-  direction: rtl;
+  direction: ltr;
 }
 
 h2 {
@@ -35,9 +45,9 @@ h2 {
   margin-top: 15px;
   margin-bottom: 15px;
   font-size: 36px;
-  color: white;
+  color: #58c2ff;
   text-align: left;
-  direction: rtl;
+  direction: ltr;
 }
 
 h3 {
@@ -45,9 +55,9 @@ h3 {
   margin-top: 10px;
   margin-bottom: 10px;
   font-size: 32px;
-  color: white;
-  direction: rtl;
+  color: violet;
   text-align: left;
+  direction: ltr;
 }
 
 p {
@@ -58,27 +68,21 @@ p {
   margin-top: 20px;
   margin-bottom: 20px;
   color: white;
-  direction: rtl;
+  direction: ltr;
   text-align: left;
 }
 
 sp {
   font-size: 16px;
-  color: white;
-  direction: rtl;
+  color: turquoise;
+  direction: ltr;
   text-align: left;
 }
 
-song_p {
-  font-size: 24px;
-  font-weight: normal;
-  line-height: 30px;
-  letter-spacing: 1px;
-  margin-top: 20px;
-  margin-bottom: 20px;
-  color: white;
-  direction: rtl;
+strong {
   text-align: left;
+  direction: lrtr;
+  color: indianred;
 }
 
 ul {
@@ -90,7 +94,7 @@ li {
   font-size: 24px;
   margin-bottom: 10px;
   padding-right: 15px;
-  direction: rtl;
+  direction: ltr;
   text-align: left;
   color: white;
 }

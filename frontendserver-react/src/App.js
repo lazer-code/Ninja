@@ -69,8 +69,8 @@ function App() {
       <div className="body-container">
         <div className="container" id="container">
           <div className="overlay">
-            <h2>Hall of</h2>
-            <h1>Ninjas</h1>
+            <title2>Hall of</title2>
+            <title1>Ninjas</title1>
           </div>
         </div>
       </div>
@@ -84,9 +84,8 @@ function App() {
                 {data.map((item, index) => (
                   <li key={index}>
                     <strong>Name:</strong> {item.name}<br />
-                    <strong>Description:</strong> {item.description}<br />
                     <strong>ID:</strong> {item.id}<br />
-                    <strong>Platform:</strong> {item.x_mitre_platform}<br />
+                    <strong>Platform:</strong> {item.x_mitre_platforms.join(', ')}<br />
                     <strong>Detection:</strong> {item.x_mitre_detection}<br />
                     <strong>Phase Name:</strong> {item.phase_name}<br />
                   </li>

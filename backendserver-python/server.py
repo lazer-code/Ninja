@@ -12,15 +12,18 @@ async def handler(websocket, path):
 
             results = list(collection.find(
                 {'description': {'$regex': message, '$options': 'i'}},
-                {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platform': 1, 'x_mitre_detection': 1, 'phase_name': 1}
+                {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
             ))
 
             if results:
-                back = json.dumps(results)
+                back = results
             else:
-                back = "[]"
+                back = []
             
-            await websocket.send(back)
+            with open('file.json', 'w') as file:
+                json.dump(back, file, indent=3)
+
+            await websocket.send(json.dumps(back))
 
     except Exception as e:
         print(f"Error: {e}")
