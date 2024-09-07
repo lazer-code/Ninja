@@ -31,7 +31,7 @@ for root, dirs, files in os.walk(target_folder):
             # Adding the current attack pattern to the attacks list
             attacks.append(result)
 
-# Creating a connection with the database
+# Creating a connection with  the database
 client = MongoClient('mongodb://localhost:27017/')
 
 # Checking if the database is already exists
