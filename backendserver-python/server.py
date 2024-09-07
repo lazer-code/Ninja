@@ -20,15 +20,11 @@ async def handler(websocket, path):
                     {},
                     {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
                 ))
-                print("ALL")
 
             if results:
                 back = results
             else:
                 back = []
-            
-            with open('file.json', 'w') as file:
-                json.dump(back, file, indent=3)
 
             await websocket.send(json.dumps(back))
 
