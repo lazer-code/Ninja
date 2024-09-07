@@ -5,11 +5,10 @@ cls
 @echo off
 
 echo Initiating database
-python adddb.py
+python InitiateDatabase.py
 echo Done
 
-echo Starting in 3 seconds
-timeout /t 3 /nobreak >nul
+pause
 cls
 
 echo Starting the server
