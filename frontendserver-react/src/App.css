@@ -82,7 +82,7 @@ sp {
 strong {
   text-align: left;
   direction: lrtr;
-  color: indianred;
+  color: tan;
 }
 
 ul {
@@ -92,7 +92,7 @@ ul {
 
 li {
   font-size: 24px;
-  margin-bottom: 10px;
+  margin-bottom: 50px;
   padding-right: 15px;
   direction: ltr;
   text-align: left;

@@ -3,7 +3,7 @@ import './App.css';
 import './Menu.css';
 
 function App() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('All');
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
   const ws = useRef(null);
@@ -78,7 +78,7 @@ function App() {
       <div className="content-body-container">
         <div className="content-container" id="content-container">
           <div>
-            <h2>Results</h2>
+            <h2>Results - {query}</h2>
             {hasResults ? (
               <ul>
                 {data.map((item, index) => (
