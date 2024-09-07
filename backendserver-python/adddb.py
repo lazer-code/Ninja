@@ -1,5 +1,6 @@
 import os
 import json
+from pymongo import MongoClient
 
 parent_folder = os.path.abspath(os.path.join(os.getcwd(), '..'))
 target_folder = os.path.join(parent_folder, 'attack-pattern')
@@ -17,9 +18,14 @@ for root, dirs, files in os.walk(target_folder):
             description = json_data.get('description', 'NA')
             x_mitre_platforms = json_data.get('x_mitre_platforms', 'NA')
             x_mitre_detection = json_data.get('x_mitre_detection', 'NA')
-            phase_name = json_data.get('phase_name', 'NA')
+            phase_names = json_data.get('kill_chain_phases', 'NA')[-1]
+            phase_name = phase_names.get('phase_name', 'NA')
             result = {'id': id, 'name': name, 'description': description, 'x_mitre_platforms': x_mitre_platforms, 'x_mitre_detection': x_mitre_detection, 'phase_name': phase_name}
             attacks.append(result)
 
-print(attacks)
+client = MongoClient('mongodb://localhost:27017/')
+if 'ninjas_database' not in client.list_database_names():
+    db = client['ninjas_database']
+    collection = db['attacks_patterns_collection']
 
+    collection.insert_many(attacks)
