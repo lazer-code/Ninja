@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-
 import './App.css';
 import './Menu.css';
 
@@ -18,17 +17,7 @@ function App() {
         const parsedData = JSON.parse(event.data);
 
         // Check if parsed data is an array and contains the expected fields
-        if (
-          Array.isArray(parsedData) &&
-          parsedData.every(item => 
-            item.name && 
-            item.description && 
-            item.id && 
-            item.x_mitre_platform && 
-            item.x_mitre_detection && 
-            item.phase_name
-          )
-        ) {
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
           setData(parsedData);
           setHasResults(true);
         } else {

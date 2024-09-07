@@ -134,7 +134,7 @@ a {
   height: auto;
   display: flex;
   justify-content: center;
-  align-items: right;
+  align-items: left;
   background: #4568DC;
   background: transparent;
 }
@@ -149,7 +149,7 @@ a {
   max-width: 100%;
   min-height: 100%;
   display: flex;
-  align-items: right;
+  align-items: left;
   justify-content: center;
   flex-direction: column;
   padding: 40px 40px;
