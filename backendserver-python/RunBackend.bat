@@ -1,7 +1,3 @@
-pip install pymongo
-pip install websockets
-cls
-
 @echo off
 
 echo Initiating database

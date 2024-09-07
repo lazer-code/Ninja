@@ -1,6 +1,8 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
-import './App.css';
-import './Menu.css';
+import './page.css';
+import './menu.css';
 
 const platformIcons = {
   Windows: <img src="/icons/windows.png" alt="Windows" />,
@@ -16,7 +18,7 @@ const platformIcons = {
   'Google Workspace': <img src="/icons/google.png" alt="Google Workspace" />
 };
 
-function App() {
+export default function Home() {
   const [query, setQuery] = useState('');
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
@@ -105,5 +107,3 @@ function App() {
     </>
   );
 }
-
-export default App;
