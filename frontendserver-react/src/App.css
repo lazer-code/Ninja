@@ -72,13 +72,6 @@ p {
   text-align: left;
 }
 
-sp {
-  font-size: 16px;
-  color: turquoise;
-  direction: ltr;
-  text-align: left;
-}
-
 strong {
   text-align: left;
   direction: lrtr;
@@ -119,12 +112,10 @@ a {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #4568DC;
   background: transparent;
 }
 
 .container {
-  background-color: #1a3252;
   border-radius: 50px;
   box-shadow: 0 50px 100px #00000040, 0 50px 50px #00000038;
   position: relative;
@@ -135,15 +126,14 @@ a {
 }
 
 .content-body-container {
-  height: auto;
   display: flex;
   justify-content: center;
-  align-items: left;
-  background: #4568DC;
   background: transparent;
 }
 
 .content-container {
+  display: flex;
+  justify-content: center;
   background-color: #45494e;
   border-radius: 50px;
   box-shadow: 0 50px 100px #00000040, 0 50px 50px #00000038;
@@ -152,13 +142,11 @@ a {
   width: 90%;
   max-width: 100%;
   min-height: 100%;
-  display: flex;
   align-items: left;
-  justify-content: center;
   flex-direction: column;
   padding: 40px 40px;
   text-align: center;
-  height: 100%;
+  height: auto;
   margin-bottom: 50px;
 }
 

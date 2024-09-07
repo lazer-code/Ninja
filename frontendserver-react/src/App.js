@@ -24,6 +24,11 @@ function App() {
 
   useEffect(() => {
     ws.current = new WebSocket('ws://localhost:8000');
+
+    ws.current.onopen = () => {
+      ws.current.send('All');
+    };
+
     ws.current.onmessage = (event) => {
       try {
         const parsedData = JSON.parse(event.data);
@@ -35,6 +40,7 @@ function App() {
         setHasResults(false);
       }
     };
+
     return () => ws.current.close();
   }, []);
 
