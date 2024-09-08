@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import './page.css';
-import './menu.css';
 
 const platformIcons = {
   Windows: <img src="/icons/windows.png" alt="Windows" />,
@@ -23,7 +21,7 @@ export default function Home() {
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
   const ws = useRef(null);
-
+  
   useEffect(() => {
     ws.current = new WebSocket('ws://localhost:8000');
 

@@ -1,3 +1,4 @@
+cd backendserver
 @echo off
 
 echo Initiating database
