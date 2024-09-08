@@ -21,6 +21,10 @@ async def handler(websocket, path):
                     {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
                 ))
 
+            if message.lower().startswith('select '):
+                message = message.replace('select ', '')
+                results: list[dict[str, str]] = list(collection.find_one({'name': message}))
+
             if results:
                 back = results
             else:
