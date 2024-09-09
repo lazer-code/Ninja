@@ -21,30 +21,41 @@ export default function Home() {
   const [query, setQuery] = useState('');
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
+  const [popupData, setPopupData] = useState([]);
   const ws = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [requestSource, setRequestSource] = useState('server');
+  const popupRef = useRef(null);
 
   useEffect(() => {
     ws.current = new WebSocket('ws://localhost:8000');
-
-    ws.current.onopen = () => {
-      ws.current.send('All');
-    };
-
+    ws.current.onopen = () => ws.current.send('All');
     ws.current.onmessage = (event) => {
       try {
         const parsedData = JSON.parse(event.data);
-        const isValid = Array.isArray(parsedData) && parsedData.length > 0;
-        setData(isValid ? parsedData : []);
-        setHasResults(isValid);
+        setData(Array.isArray(parsedData) && parsedData.length > 0 ? parsedData : []);
+        setHasResults(parsedData.length > 0);
+        setRequestSource('server');
       } catch {
         setData([]);
         setHasResults(false);
+        setRequestSource('server');
       }
     };
-
     return () => ws.current.close();
-  }, []);
+  }, [requestSource]);
+
+  useEffect(() => {
+    if (isOpen && popupRef.current) {
+      const detailsElement = popupRef.current.querySelector('h2');
+      if (detailsElement) {
+        window.scrollTo({
+          top: detailsElement.getBoundingClientRect().top + window.scrollY - 10,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [isOpen, popupData]);
 
   useEffect(() => {
     if (ws.current?.readyState === WebSocket.OPEN) {
@@ -54,16 +65,18 @@ export default function Home() {
 
   const handleChange = (e) => setQuery(e.target.value.trim().replace(/\s+/g, ''));
 
-  const togglePopup = () => {
-    setIsOpen(!isOpen);
-  };
+  const togglePopup = () => setIsOpen(prev => !prev);
 
   const handleItemClick = (itemName) => {
+    const itemData = data.find(item => item.name === itemName);
     setSelected(itemName);
-    togglePopup();    
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(`select ${itemName}`);
-    }
+    setPopupData(itemData ? [itemData] : []);
+
+    if (!isOpen) togglePopup();
+
+    setRequestSource('user');
+
+    if (ws.current?.readyState === WebSocket.OPEN) ws.current.send(`select ${itemName}`);
   };
 
   return (
@@ -91,54 +104,38 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="content-body-container">
-        <div className="content-container">
-          <h2>Results - {query || 'All'}</h2>
-          {hasResults ? (
-            <ul>
-              {data.map((item, index) => (
-                <li key={index} onClick={() => handleItemClick(item.name)}>
-                  <strong>Name:</strong> {item.name}<br />
-                  <strong>ID:</strong> {item.id}<br />
-                  <strong>Platform:</strong> {item.x_mitre_platforms.map(platform => (
-                    <span className="icon-container" key={platform}>
-                      {platformIcons[platform] || platform}
-                      <span className="tooltip">{platform}</span>
-                    </span>
-                  ))}<br />
-                  <strong>Detection:</strong> {item.x_mitre_detection}<br />
-                  <strong>Phase Name:</strong> {item.phase_name}<br />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No Results</p>
-          )}
-        </div>
-      </div>
-
-      <div>
       {isOpen && selected && (
-        <div className="overlaypopup">
+        <div className="overlaypopup" ref={popupRef}>
           <div className="content-body-container">
             <div className="content-container">
               <button onClick={togglePopup}>X</button>
-
               <h2>Details - {selected}</h2>
-              {data.length > 0 ? (
-                data.filter(item => item.name === selected).map(item => (
-                  <div key={item.id}>
-                    <p><strong>ID:</strong> {item.id}</p>
-                    <p><strong>Name:</strong> {item.name}</p>
-                    <p><strong>Description:</strong> {item.description}</p>
-                    <p><strong>Platform:</strong> {(item.x_mitre_platforms || []).map(platform => (
+              {popupData.length ? (
+                popupData.map(({ id, name, description, x_mitre_platforms = [], x_mitre_detection, phase_name }) => (
+                  <div key={id}>
+                    <h3>Id</h3>
+                    <p>{id}</p>
+                    <br></br>
+
+                    <h3>Description</h3>
+                    <p>{description}</p>
+                    <br></br>
+
+                    <h3>Platforms</h3>
+                    <p>{x_mitre_platforms.map(platform => (
                       <span className="icon-container" key={platform}>
                         {platformIcons[platform] || platform}
                         <span className="tooltip">{platform}</span>
                       </span>
                     ))}</p>
-                    <p><strong>Detection:</strong> {item.x_mitre_detection}</p>
-                    <p><strong>Phase Name:</strong> {item.phase_name}</p>
+                    <br></br>
+
+                    <h3>Detection</h3>
+                    <p>{x_mitre_detection}</p>
+                    <br></br>
+
+                    <h3>Phase Name</h3>
+                    <p>{phase_name}</p>
                   </div>
                 ))
               ) : (
@@ -149,9 +146,38 @@ export default function Home() {
         </div>
       )}
 
-
-
-    </div>
+      <div className="content-body-container">
+        <div className="content-container">
+          <h2>Results - {query || 'All'}</h2>
+          <ul>
+              <li style={{ display: 'flex', alignItems: 'center', borderBottom: '5px solid #ccc'}}>
+                <p style={{ flex: '1' }}>Name</p>
+                <p style={{ flex: '1', textAlign: 'center' }}>Platforms</p>
+                <p style={{ flex: '1', textAlign: 'right' }}>Phase Name</p>
+              </li>
+          </ul>
+          {hasResults ? (
+            <ul>
+              {data.map(({ name, x_mitre_platforms, phase_name }, index) => (
+                <li key={index} onClick={() => handleItemClick(name)} style={{ display: 'flex', alignItems: 'center'}}>
+                  <p style={{ flex: '1' }}>{name}</p>
+                  <p style={{ flex: '2', display: 'flex', justifyContent: 'center' }}>
+                    {x_mitre_platforms.map(platform => (
+                      <p className="icon-container" key={platform} style={{ margin: '0 4px' }}>
+                        {platformIcons[platform] || platform}
+                        <p className="tooltip">{platform}</p>
+                      </p>
+                    ))}
+                  </p>
+                  <p style={{ flex: '1', textAlign: 'right' }}>{phase_name}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No Results</p>
+          )}
+        </div>
+      </div>
     </>
   );
 }

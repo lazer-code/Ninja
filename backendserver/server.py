@@ -10,27 +10,28 @@ async def handler(websocket, path):
             db = client['ninjas_database']
             collection = db['attacks_patterns_collection']
 
-            results: list[dict[str, str]] = list(collection.find(
+            results: list[dict[str, str]]  = list(collection.find(
                 {'description': {'$regex': message, '$options': 'i'}},
                 {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
             ))
 
             if message.lower() == 'all':
-                results: list[dict[str, str]] = list(collection.find(
+                results: list[dict[str, str]]  = list(collection.find(
                     {},
                     {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
                 ))
 
             if message.lower().startswith('select '):
                 message = message.replace('select ', '')
-                results: list[dict[str, str]] = list(collection.find_one({'name': message}))
+                results: list[dict[str, str]] = [collection.find_one({'name': message})]
 
             if results:
                 back = results
             else:
                 back = []
 
-            await websocket.send(json.dumps(back))
+            str_results = json.dumps(results, default=str)
+            await websocket.send(str_results)
 
     except Exception as e:
         print(f"Error: {e}")
