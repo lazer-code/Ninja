@@ -47,13 +47,11 @@ export default function Home() {
 
   useEffect(() => {
     if (isOpen && popupRef.current) {
-      const detailsElement = popupRef.current.querySelector('h2');
-      if (detailsElement) {
-        window.scrollTo({
-          top: detailsElement.getBoundingClientRect().top + window.scrollY - 10,
-          behavior: 'smooth'
-        });
-      }
+      const scrollToPopup = () => {
+        const popupTop = popupRef.current.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: popupTop - 100, behavior: 'smooth' });
+      };
+      scrollToPopup();
     }
   }, [isOpen, popupData]);
 
@@ -98,8 +96,8 @@ export default function Home() {
       <div className="body-container">
         <div className="container">
           <div className="overlay">
-            <title2>Hall of</title2>
-            <title1>Ninjas</title1>
+            <title2>Attack like a</title2>
+            <title1>Ninja</title1>
           </div>
         </div>
       </div>
