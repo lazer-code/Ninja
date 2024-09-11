@@ -17,15 +17,11 @@ const platformIcons = {
 };
 
 export default function Home() {
-  const [selected, setSelected] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const [query, setQuery] = useState('');
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
-  const [popupData, setPopupData] = useState([]);
   const ws = useRef(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [requestSource, setRequestSource] = useState('server');
-  const popupRef = useRef(null);
 
   useEffect(() => {
     ws.current = new WebSocket('ws://localhost:8000');
@@ -35,25 +31,13 @@ export default function Home() {
         const parsedData = JSON.parse(event.data);
         setData(Array.isArray(parsedData) && parsedData.length > 0 ? parsedData : []);
         setHasResults(parsedData.length > 0);
-        setRequestSource('server');
       } catch {
         setData([]);
         setHasResults(false);
-        setRequestSource('server');
       }
     };
     return () => ws.current.close();
-  }, [requestSource]);
-
-  useEffect(() => {
-    if (isOpen && popupRef.current) {
-      const scrollToPopup = () => {
-        const popupTop = popupRef.current.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: popupTop - 100, behavior: 'smooth' });
-      };
-      scrollToPopup();
-    }
-  }, [isOpen, popupData]);
+  }, []);
 
   useEffect(() => {
     if (ws.current?.readyState === WebSocket.OPEN) {
@@ -63,18 +47,8 @@ export default function Home() {
 
   const handleChange = (e) => setQuery(e.target.value.trim().replace(/\s+/g, ''));
 
-  const togglePopup = () => setIsOpen(prev => !prev);
-
-  const handleItemClick = (itemName) => {
-    const itemData = data.find(item => item.name === itemName);
-    setSelected(itemName);
-    setPopupData(itemData ? [itemData] : []);
-
-    if (!isOpen) togglePopup();
-
-    setRequestSource('user');
-
-    if (ws.current?.readyState === WebSocket.OPEN) ws.current.send(`select ${itemName}`);
+  const handleItemClick = (index) => {
+    setSelectedIndex(prevIndex => prevIndex === index ? null : index);
   };
 
   return (
@@ -102,73 +76,57 @@ export default function Home() {
         </div>
       </div>
 
-      {isOpen && selected && (
-        <div className="overlaypopup" ref={popupRef}>
-          <div className="content-body-container">
-            <div className="content-container">
-              <button onClick={togglePopup}>X</button>
-              <h2>Details - {selected}</h2>
-              {popupData.length ? (
-                popupData.map(({ id, name, description, x_mitre_platforms = [], x_mitre_detection, phase_name }) => (
-                  <div key={id}>
-                    <h3>Id</h3>
-                    <p>{id}</p>
-                    <br></br>
-
-                    <h3>Description</h3>
-                    <p>{description}</p>
-                    <br></br>
-
-                    <h3>Platforms</h3>
-                    <p>{x_mitre_platforms.map(platform => (
-                      <span className="icon-container" key={platform}>
-                        {platformIcons[platform] || platform}
-                        <span className="tooltip">{platform}</span>
-                      </span>
-                    ))}</p>
-                    <br></br>
-
-                    <h3>Detection</h3>
-                    <p>{x_mitre_detection}</p>
-                    <br></br>
-
-                    <h3>Phase Name</h3>
-                    <p>{phase_name}</p>
-                  </div>
-                ))
-              ) : (
-                <p>No Details Available</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="content-body-container">
         <div className="content-container">
           <h2>Results - {query || 'All'}</h2>
           <ul>
-              <li style={{ display: 'flex', alignItems: 'center', borderBottom: '5px solid #ccc'}}>
-                <p style={{ flex: '1' }}>Name</p>
-                <p style={{ flex: '1', textAlign: 'center' }}>Platforms</p>
-                <p style={{ flex: '1', textAlign: 'right' }}>Phase Name</p>
-              </li>
+            <li style={{ display: 'flex', alignItems: 'center', borderBottom: '5px solid #ccc' }}>
+              <p style={{ flex: '1' }}>Name</p>
+              <p style={{ flex: '1', textAlign: 'center' }}>Platforms</p>
+              <p style={{ flex: '1', textAlign: 'center' }}>Phase Name</p>
+              <p style={{ flex: '1', textAlign: 'center' }}>Action</p>
+            </li>
           </ul>
           {hasResults ? (
             <ul>
-              {data.map(({ name, x_mitre_platforms, phase_name }, index) => (
-                <li key={index} onClick={() => handleItemClick(name)} style={{ display: 'flex', alignItems: 'center'}}>
-                  <p style={{ flex: '1' }}>{name}</p>
-                  <p style={{ flex: '2', display: 'flex', justifyContent: 'center' }}>
-                    {x_mitre_platforms.map(platform => (
-                      <p className="icon-container" key={platform} style={{ margin: '0 4px' }}>
-                        {platformIcons[platform] || platform}
-                        <p className="tooltip">{platform}</p>
-                      </p>
-                    ))}
-                  </p>
-                  <p style={{ flex: '1', textAlign: 'right' }}>{phase_name}</p>
-                </li>
+              {data.map(({ name, x_mitre_platforms, phase_name, description, x_mitre_detection, id }, index) => (
+                <React.Fragment key={index}>
+                  <li style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <p style={{ flex: '1' }}>{name}</p>
+                    <p style={{ flex: '2', display: 'flex', justifyContent: 'center' }}>
+                      {x_mitre_platforms.map(platform => (
+                        <span className="icon-container" key={platform} style={{ margin: '0 4px' }}>
+                          {platformIcons[platform] || platform}
+                          <span className="tooltip">{platform}</span>
+                        </span>
+                      ))}
+                    </p>
+                    <p style={{ flex: '1', textAlign: 'center' }}>{phase_name}</p>
+                    <button 
+                      onClick={() => handleItemClick(index)}
+                      style={{ marginLeft: '10px' }}
+                    >
+                      {selectedIndex === index ? 'v' : '^'}
+                    </button>
+                  </li>
+                  {selectedIndex === index && (
+                    <li style={{ padding: '10px', borderTop: '5px solid #ddd', borderBottom: '5px solid #ddd' }}>
+                      <div>
+                        <h3>Id</h3>
+                        <p>{id}</p>
+                        <br></br>
+
+                        <h3>Description</h3>
+                        <p>{description}</p>
+                        <br></br>
+
+                        <h3>Detection</h3>
+                        <p>{x_mitre_detection}</p>
+                        <br></br>
+                      </div>
+                    </li>
+                  )}
+                </React.Fragment>
               ))}
             </ul>
           ) : (
