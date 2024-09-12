@@ -1,3 +1,6 @@
+import sys
+import json
+
 def extract_key_value(sentence):
     attack_keys = {"id", "description", "phase name", "name", "platform", "detection"}
     encryption_types = {"md5", "sha1", "sha256", "sha512", "bcrypt", "aes", "rsa"}
@@ -40,11 +43,13 @@ def extract_key_value(sentence):
 
     return results if results else "Only one request at a time"
 
-sentence = input('Enter sentence: ')
-key_value_pairs = extract_key_value(sentence)
+def main():
+    args = sys.argv[1:]
+    sentence = args[0]
+    key_value_pairs = extract_key_value(sentence)
 
-if isinstance(key_value_pairs, dict):
-    for key, value in key_value_pairs.items():
-        print(f"{key}: {value}")
-else:
-    print(key_value_pairs)
+    with open ('output.txt', 'w') as file:
+        json.dump(key_value_pairs, file, indent=3)
+        
+if __name__ == "__main__":
+    main()

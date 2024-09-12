@@ -1,11 +1,13 @@
 import asyncio
 import websockets
 import json
+import subprocess
 from pymongo import MongoClient
 
 async def handler(websocket, path):
     try:
         async for message in websocket:
+            print(message)
             client = MongoClient('mongodb://localhost:27017/')
             db = client['ninjas_database']
             collection = db['attacks_patterns_collection']
@@ -24,6 +26,12 @@ async def handler(websocket, path):
             if message.lower().startswith('select '):
                 message = message.replace('select ', '')
                 results: list[dict[str, str]] = [collection.find_one({'name': message})]
+            
+            if message.lower().startswith('ai '):
+                message = message.replace('ai ', '')
+                exec('python AI.py "md5 hello')
+                with open ('output.txt', 'r') as file:
+                    print(f"AI: {file.readline()}")
 
             if results:
                 back = results
