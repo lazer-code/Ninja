@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 const platformIcons = {
   Windows: <img src="/icons/windows.png" alt="Windows" />,
@@ -17,51 +17,73 @@ const platformIcons = {
 };
 
 export default function Home() {
+  const [AISearchbar, setAISearchbar] = useState("");
+  const [searchbar, setSearchbar] = useState("");
+  const [showSearchBar, setShowSearchBar] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
-  const [query, setQuery] = useState("");
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
+  const [searchType, setSearchType] = useState("Normal Search");
+
   const ws = useRef(null);
-  const [showSearchBar, setShowSearchBar] = useState(false);
   const searchBarRef = useRef(null);
 
-  useEffect(() => {
+  const setupWebSocket = () => {
+    if (ws.current) ws.current.close();
     ws.current = new WebSocket("ws://localhost:8000");
+
     ws.current.onopen = () => ws.current.send("All");
+
     ws.current.onmessage = (event) => {
       try {
         const parsedData = JSON.parse(event.data);
-        setData(Array.isArray(parsedData) && parsedData.length > 0 ? parsedData : []);
+        setData(Array.isArray(parsedData) ? parsedData : []);
         setHasResults(parsedData.length > 0);
       } catch {
         setData([]);
         setHasResults(false);
       }
     };
-    return () => ws.current.close();
+
+    ws.current.onerror = console.error;
+    ws.current.onclose = () => {};
+  };
+
+  useEffect(() => {
+    setupWebSocket();
+
+    return () => ws.current?.close();
   }, []);
 
   useEffect(() => {
     if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(query.trim() || "All");
+      if (!AISearchbar)
+        setSearchbar("All");
+      
+      ws.current.send(searchbar ? `${searchType} ${searchbar}` : "All");
+    } else if (ws.current?.readyState === WebSocket.CLOSED) {
+      setupWebSocket();
     }
-  }, [query]);
+  }, [searchbar, searchType]);
 
-  const handleChange = (e) => setQuery(e.target.value.trim().replace(/\s+/g, ""));
+  const handleSearchBarChanged = (e) => {
+    setSearchbar(e.target.value);
+    setSearchType("Normal Search");
+  };
 
-  const handleItemClick = (index) => {
+  const handleAISearchBarChanged = (e) => setAISearchbar(e.target.value);
+
+  const handleItemClicked = useCallback((index) => {
     setSelectedIndex((prevIndex) => (prevIndex === index ? null : index));
-  };
+  }, []);
 
-  const toggleSearchBar = () => {
-    setShowSearchBar((prev) => !prev);
-  };
+  const toggleSearchBar = () => setShowSearchBar((prev) => !prev);
 
-  const handleClickOutside = (e) => {
+  const handleClickOutside = useCallback((e) => {
     if (searchBarRef.current && !searchBarRef.current.contains(e.target)) {
       setShowSearchBar(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (showSearchBar) {
@@ -70,10 +92,21 @@ export default function Home() {
       document.removeEventListener("click", handleClickOutside);
     }
 
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [showSearchBar]);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showSearchBar, handleClickOutside]);
+
+  const handleSendClick = () => {
+    setSearchbar(AISearchbar);
+    setSearchType("AI Search");
+    if (ws.current?.readyState === WebSocket.OPEN) {
+     if (!AISearchbar)
+      setSearchbar("All");
+    
+      ws.current.send(AISearchbar ? `${searchType} ${AISearchbar}` : "All");
+    } else {
+      setupWebSocket();
+    }
+  };
 
   return (
     <>
@@ -85,8 +118,9 @@ export default function Home() {
           <input
             type="text"
             placeholder="Search..."
-            value={query}
-            onChange={handleChange}
+            value={searchbar}
+            onChange={handleSearchBarChanged}
+            onFocus={handleSearchBarChanged}
           />
         </div>
       </div>
@@ -94,19 +128,19 @@ export default function Home() {
       <div className="body-container">
         <div className="container">
           <div className="overlay">
-            <title2>Attack like a</title2>
-            <title1>Ninja</title1>
+            <h2>Attack like a</h2>
+            <h1>Ninja</h1>
           </div>
         </div>
       </div>
 
       <div className="content-body-container">
         <div className="content-container">
-          <h2>Results - {query || "All"}</h2>
+          <h2>{searchType} Results - {searchbar || "All"}</h2>
           <ul>
             <li style={{ display: "flex", alignItems: "center", borderBottom: "5px solid #ccc" }}>
               <p style={{ flex: "1" }}>Name</p>
-              <p style={{ flex: "1", textAlign: "center" }}>Platforms</p>
+              <p style={{ flex: "2", textAlign: "center" }}>Platforms</p>
               <p style={{ flex: "1", textAlign: "center" }}>Phase Name</p>
               <p style={{ flex: "1", textAlign: "center" }}>Action</p>
             </li>
@@ -119,28 +153,26 @@ export default function Home() {
                     <p style={{ flex: "1" }}>{name}</p>
                     <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
                       {x_mitre_platforms.map((platform) => (
-                        <span className="icon-container" key={platform} style={{ margin: "0 4px" }}>
+                        <span className="icon-container" key={platform}>
                           {platformIcons[platform] || platform}
                           <span className="tooltip">{platform}</span>
                         </span>
                       ))}
                     </p>
                     <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
-                    <button onClick={() => handleItemClick(index)} style={{ marginLeft: "10px" }}>
+                    <button onClick={() => handleItemClicked(index)}>
                       {selectedIndex === index ? "v" : "^"}
                     </button>
                   </li>
                   {selectedIndex === index && (
-                    <li style={{ padding: "10px", borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
+                    <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
                       <div>
                         <h3>Id</h3>
                         <p>{id}</p>
                         <br />
-
                         <h3>Description</h3>
                         <p>{description}</p>
                         <br />
-
                         <h3>Detection</h3>
                         <p>{x_mitre_detection}</p>
                         <br />
@@ -165,9 +197,14 @@ export default function Home() {
           <input
             type="text"
             placeholder="Search..."
-            value={query}
-            onChange={handleChange}
+            value={AISearchbar}
+            onChange={handleAISearchBarChanged}
           />
+          <button onClick={handleSendClick} className="send-button">
+            <div className="icon-container">
+              <img src="/icons/send.png" alt="Send" />
+            </div>
+          </button>
         </div>
       )}
     </>

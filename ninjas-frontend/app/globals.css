@@ -11,31 +11,11 @@ body {
   animation: moveColors 4s infinite linear;
 }
 
-title1 {
-  font-weight: bold;
-  margin-bottom: 20px;
-  font-size: 54px;
-  color: white;
-  text-align: left;
-  direction: ltr;
-}
-
-title2 {
-  font-weight: bold;
-  margin-top: 15px;
-  margin-bottom: 15px;
-  font-size: 36px;
-  color: white;
-  text-align: left;
-  direction: ltr;
-}
-
 h1 {
   font-weight: bold;
-  margin-top: 20px;
   margin-bottom: 20px;
   font-size: 54px;
-  color: lawngreen;
+  color: white;
   text-align: left;
   direction: ltr;
 }
@@ -45,7 +25,7 @@ h2 {
   margin-top: 15px;
   margin-bottom: 15px;
   font-size: 36px;
-  color: #58c2ff;
+  color: white;
   text-align: left;
   direction: ltr;
 }
@@ -72,12 +52,6 @@ p {
   text-align: left;
 }
 
-strong {
-  text-align: left;
-  direction: lrtr;
-  color: tan;
-}
-
 ul {
   list-style-type: disc;
   padding-right: 2%;
@@ -94,10 +68,6 @@ li {
 
 ol {
   padding-right: 5%;
-}
-
-span {
-  font-size: 12px;
 }
 
 a {
@@ -244,7 +214,7 @@ a {
   color: indianred;
 }
 
-.menu .search {
+.search {
   flex: 2;
   display: flex;
   justify-content: center;
@@ -253,24 +223,26 @@ a {
   transform: translateX(-50%);
 }
 
-.menu input[type="text"] {
+input[type="text"] {
   border: 2px solid #fff;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.1);
   color: white;
-  padding: 5% 100%;
+  padding: 5px 15px;
   outline: none;
   font-size: 1rem;
   font-weight: bold;
   text-align: center;
+  width: 100vh;
+  transition: border-color 0.3s ease;
 }
 
 .menu input[type="text"]::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.menu input:focus,
-.menu input:hover {
+input[type="text"]:focus,
+input[type="text"]:hover {
   border-color: indianred;
 }
 
@@ -309,20 +281,19 @@ button:focus {
 
 .search-bar {
   position: fixed;
-  bottom: 20px;
+  bottom: 5%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #fff;
-  padding: 10px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
+  background-color: #2e2e2e;
+  border-radius: 20px;
+  width: 25%;
   display: flex;
   align-items: center;
 }
 
 .search-bar input {
-  width: 300px;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+  width: 100%;
+  padding: 2%;
+  width: 100%;
+  color: white;
 }
