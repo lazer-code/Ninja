@@ -8,6 +8,7 @@ def extract_key_value(sentence):
     ip_address_like_words = {"ip", "ipaddress"}
     file_hash_words = {"hash", "checksum", "filehash"}
 
+
     all_keys = attack_keys | encryption_types | url_like_words | ip_address_like_words | file_hash_words
 
     results = {}
@@ -22,6 +23,12 @@ def extract_key_value(sentence):
                 found_attack_keys.add(word)
             elif found_attack_keys:
                 return "Only one request at a time"
+            
+            if word in attack_keys:
+                results['type'] = 'database search'
+
+            elif word not in attack_keys and word in all_keys:
+                results['type'] = 'online search'
 
             j = i + 1
             while j < len(words) and words[j] in {"value", "is", "for", "the", "with", "of"}:

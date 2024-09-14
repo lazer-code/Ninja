@@ -20,21 +20,25 @@ export default function Home() {
   const [AISearchbar, setAISearchbar] = useState("");
   const [searchbar, setSearchbar] = useState("");
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [searchType, setSearchType] = useState("Normal Search");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [data, setData] = useState([]);
   const [hasResults, setHasResults] = useState(true);
-  const [searchType, setSearchType] = useState("Normal Search");
+  const [showResults, setShowResults] = useState(true);
+  const [wsReady, setWsReady] = useState(false);
 
   const ws = useRef(null);
   const searchBarRef = useRef(null);
 
-  const setupWebSocket = () => {
-    if (ws.current) ws.current.close();
+  useEffect(() => {
     ws.current = new WebSocket("ws://localhost:8000");
 
-    ws.current.onopen = () => ws.current.send("All");
+    const handleOpen = () => {
+      setWsReady(true);
+      ws.current.send("All");
+    };
 
-    ws.current.onmessage = (event) => {
+    const handleMessage = (event) => {
       try {
         const parsedData = JSON.parse(event.data);
         setData(Array.isArray(parsedData) ? parsedData : []);
@@ -45,33 +49,70 @@ export default function Home() {
       }
     };
 
-    ws.current.onerror = console.error;
-    ws.current.onclose = () => {};
-  };
+    const handleError = (error) => {
+      console.error("WebSocket error:", error);
+    };
 
-  useEffect(() => {
-    setupWebSocket();
+    const handleClose = () => {
+      setWsReady(false);
+    };
 
-    return () => ws.current?.close();
+    ws.current.addEventListener("open", handleOpen);
+    ws.current.addEventListener("message", handleMessage);
+    ws.current.addEventListener("error", handleError);
+    ws.current.addEventListener("close", handleClose);
+
+    return () => {
+      if (ws.current) {
+        ws.current.removeEventListener("open", handleOpen);
+        ws.current.removeEventListener("message", handleMessage);
+        ws.current.removeEventListener("error", handleError);
+        ws.current.removeEventListener("close", handleClose);
+        ws.current.close();
+      }
+    };
   }, []);
 
-  useEffect(() => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      if (!AISearchbar)
-        setSearchbar("All");
-      
-      ws.current.send(searchbar ? `${searchType} ${searchbar}` : "All");
-    } else if (ws.current?.readyState === WebSocket.CLOSED) {
-      setupWebSocket();
+  const sendData = (query, type) => {
+    if (ws.current && wsReady) {
+      ws.current.send(`${type} ${query || "All"}`);
+    } else {
+      ws.current = new WebSocket("ws://localhost:8000");
+      const handleOpen = () => {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+          ws.current.send(`${type} ${query || "All"}`);
+        }
+      };
+      ws.current.addEventListener("open", handleOpen, { once: true });
+      ws.current.addEventListener("message", (event) => {
+        try {
+          const parsedData = JSON.parse(event.data);
+          setData(Array.isArray(parsedData) ? parsedData : []);
+          setHasResults(parsedData.length > 0);
+        } catch {
+          setData([]);
+          setHasResults(false);
+        }
+      });
     }
-  }, [searchbar, searchType]);
-
-  const handleSearchBarChanged = (e) => {
-    setSearchbar(e.target.value);
-    setSearchType("Normal Search");
   };
 
-  const handleAISearchBarChanged = (e) => setAISearchbar(e.target.value);
+  const handleSearchBarChanged = (e) => {
+    const value = e.target.value;
+    setSearchbar(value);
+    setSearchType("Normal Search");
+    sendData(value, "Normal Search");
+    setShowResults(true);
+  };
+
+  const handleAISearchBarChanged = (e) => {
+    setAISearchbar(e.target.value);
+  };
+
+  const handleFocusSearchBar = (e) => {
+    setShowResults(true);
+    handleSearchBarChanged(e);
+  };
 
   const handleItemClicked = useCallback((index) => {
     setSelectedIndex((prevIndex) => (prevIndex === index ? null : index));
@@ -96,16 +137,9 @@ export default function Home() {
   }, [showSearchBar, handleClickOutside]);
 
   const handleSendClick = () => {
-    setSearchbar(AISearchbar);
     setSearchType("AI Search");
-    if (ws.current?.readyState === WebSocket.OPEN) {
-     if (!AISearchbar)
-      setSearchbar("All");
-    
-      ws.current.send(AISearchbar ? `${searchType} ${AISearchbar}` : "All");
-    } else {
-      setupWebSocket();
-    }
+    setShowResults(false);
+    sendData(AISearchbar, "AI Search");
   };
 
   return (
@@ -120,7 +154,7 @@ export default function Home() {
             placeholder="Search..."
             value={searchbar}
             onChange={handleSearchBarChanged}
-            onFocus={handleSearchBarChanged}
+            onFocus={handleFocusSearchBar}
           />
         </div>
       </div>
@@ -130,63 +164,83 @@ export default function Home() {
           <div className="overlay">
             <h2>Attack like a</h2>
             <h1>Ninja</h1>
+            <h2>{searchType}</h2>
           </div>
         </div>
       </div>
 
-      <div className="content-body-container">
-        <div className="content-container">
-          <h2>{searchType} Results - {searchbar || "All"}</h2>
-          <ul>
-            <li style={{ display: "flex", alignItems: "center", borderBottom: "5px solid #ccc" }}>
-              <p style={{ flex: "1" }}>Name</p>
-              <p style={{ flex: "2", textAlign: "center" }}>Platforms</p>
-              <p style={{ flex: "1", textAlign: "center" }}>Phase Name</p>
-              <p style={{ flex: "1", textAlign: "center" }}>Action</p>
-            </li>
-          </ul>
-          {hasResults ? (
+      {showResults && (
+        <div className="content-body-container">
+          <div className="content-container">
+            <h2>Normal Search Results - {searchbar || "All"}</h2>
             <ul>
-              {data.map(({ name, x_mitre_platforms, phase_name, description, x_mitre_detection, id }, index) => (
-                <React.Fragment key={index}>
-                  <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                    <p style={{ flex: "1" }}>{name}</p>
-                    <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
-                      {x_mitre_platforms.map((platform) => (
-                        <span className="icon-container" key={platform}>
-                          {platformIcons[platform] || platform}
-                          <span className="tooltip">{platform}</span>
-                        </span>
-                      ))}
-                    </p>
-                    <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
-                    <button onClick={() => handleItemClicked(index)}>
-                      {selectedIndex === index ? "v" : "^"}
-                    </button>
-                  </li>
-                  {selectedIndex === index && (
-                    <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
-                      <div>
-                        <h3>Id</h3>
-                        <p>{id}</p>
-                        <br />
-                        <h3>Description</h3>
-                        <p>{description}</p>
-                        <br />
-                        <h3>Detection</h3>
-                        <p>{x_mitre_detection}</p>
-                        <br />
-                      </div>
-                    </li>
-                  )}
-                </React.Fragment>
-              ))}
+              <li style={{ display: "flex", alignItems: "center", borderBottom: "5px solid #ccc" }}>
+                <p style={{ flex: "1" }}>Name</p>
+                <p style={{ flex: "2", textAlign: "center" }}>Platforms</p>
+                <p style={{ flex: "1", textAlign: "center" }}>Phase Name</p>
+                <p style={{ flex: "1", textAlign: "center" }}>Action</p>
+              </li>
             </ul>
-          ) : (
-            <p>No Results</p>
-          )}
+            {hasResults ? (
+              <ul>
+                {data.map(({ name, x_mitre_platforms = [], phase_name, description, x_mitre_detection, id }, index) => (
+                  <React.Fragment key={id}>
+                    <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                      <p style={{ flex: "1" }}>{name}</p>
+                      <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
+                        {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
+                          x_mitre_platforms.map((platform) => (
+                            <span className="icon-container" key={platform}>
+                              {platformIcons[platform] || platform}
+                              <span className="tooltip">{platform}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span>No Platforms</span>
+                        )}
+                      </p>
+                      <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
+                      <button onClick={() => handleItemClicked(index)}>
+                        {selectedIndex === index ? "v" : "^"}
+                      </button>
+                    </li>
+                    {selectedIndex === index && (
+                      <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
+                        <div>
+                          <h3>Id</h3>
+                          <p>{id}</p>
+                          <br />
+                          <h3>Description</h3>
+                          <p>{description}</p>
+                          <br />
+                          <h3>Detection</h3>
+                          <p>{x_mitre_detection}</p>
+                          <br />
+                        </div>
+                      </li>
+                    )}
+                  </React.Fragment>
+                ))}
+              </ul>
+            ) : (
+              <p>No Results</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!showResults && (
+        <div className="content-body-container">
+          <div className="content-container">
+            <h3>AI Search Results - {AISearchbar}</h3>
+            <p>{data.length > 0 ? data.map((result, index) => (
+              <div key={index}>
+                <pre>{JSON.stringify(result, null, 2)}</pre>
+              </div>
+            )) : 'No Results'}</p>
+          </div>
+        </div>
+      )}
 
       <button onClick={toggleSearchBar} className="fixed-button">
         AI
