@@ -67,10 +67,12 @@ def getVirustotalResults(results: dict[str, str]):
 
             result = data.get('positives', 0)
 
+        
             if result > 0:
-                return 'Malicious'
+                return {'type': results['type'], 'status': 'Malicious'}
 
-            return 'Clean'
+
+            return {'type': results['type'], 'status': 'Clean'}
   
     return 'Unknown'
 
@@ -85,7 +87,7 @@ def main():
 
         results = extract_key_value(sentence)
         with open('output.txt', 'w') as file:
-            file.write(str(getVirustotalResults(results)))
+            json.dump(results, file, indent=3)
 
     except Exception as e:
         error_message = f"Error occurred: {str(e)}"
