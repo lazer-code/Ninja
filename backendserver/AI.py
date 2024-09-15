@@ -71,7 +71,10 @@ def getVirustotalResults(results: dict[str, str]):
                 return 'Malicious'
 
             return 'Clean'
-              
+
+        elif key in attack_keys:
+            return 'attack'
+            
     return 'Unknown'
 
 def main():
