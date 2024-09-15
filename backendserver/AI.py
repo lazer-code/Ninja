@@ -53,12 +53,13 @@ def extract_key_value(sentence):
 
 def getVirustotalResults(results: dict[str, str]):
     apikey: str = '3704563ee024370204fca6814514fe33d0713f10b4385bbd9d4d8f552fd2fec0'
-    for key, value in results.items():
-        if key not in attack_keys:
+
+    for key in results:        
+        if key not in attack_keys and key in all_keys:
             url = 'https://www.virustotal.com/vtapi/v2/file/report'
             params = {
                 'apikey': apikey,
-                'resource': value
+                'resource': results[key]
             }
 
             response = requests.get(url, params=params)
@@ -84,7 +85,7 @@ def main():
 
         results = extract_key_value(sentence)
         with open('output.txt', 'w') as file:
-            file.write(str(getVirustotalResults(results)) + "\n" + str(results))
+            file.write(str(getVirustotalResults(results)))
 
     except Exception as e:
         error_message = f"Error occurred: {str(e)}"
