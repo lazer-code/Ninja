@@ -13,7 +13,7 @@ all_keys = attack_keys | encryption_types | url_like_words | ip_address_like_wor
 
 def extract_key_value(sentence):
     results = {}
-    found_attack_keys = set()
+    found_keys = set()
     words = sentence.lower().split()
 
     i = 0
@@ -21,11 +21,12 @@ def extract_key_value(sentence):
     while i < len(words):
         word = words[i]
         if word in all_keys:
-            if word in attack_keys:
-                found_attack_keys.add(word)
-            elif found_attack_keys:
+            if found_keys:
                 return "Only one request at a time"
             
+            if word in all_keys:
+                found_keys.add(word)
+
             if word in attack_keys:
                 results['type'] = 'database search'
 
@@ -40,14 +41,12 @@ def extract_key_value(sentence):
                 i = j
         i += 1
 
-    if found_attack_keys:
-        if not results:
-            return "Only one request at a time"
-        missing_data_keys = found_attack_keys - results.keys()
-        if missing_data_keys:
-            return f"Not enough data for: {', '.join(missing_data_keys)}"
-    elif not results:
+    if not results:
         return "Unable to process your request"
+
+    missing_data_keys = found_keys - results.keys()
+    if missing_data_keys:
+        return f"Not enough data for: {', '.join(missing_data_keys)}"
 
     return results
 
@@ -69,11 +68,10 @@ def getVirustotalResults(results: dict[str, str]):
 
         
             if result > 0:
-                return {'type': results['type'], 'status': 'Malicious'}
+                return 'Malicious'
 
-
-            return {'type': results['type'], 'status': 'Clean'}
-  
+            return 'Clean'
+              
     return 'Unknown'
 
 def main():
@@ -87,7 +85,7 @@ def main():
 
         results = extract_key_value(sentence)
         with open('output.txt', 'w') as file:
-            json.dump(results, file, indent=3)
+            file.write(str(getVirustotalResults(results)))
 
     except Exception as e:
         error_message = f"Error occurred: {str(e)}"
