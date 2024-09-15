@@ -169,6 +169,22 @@ export default function Home() {
         </div>
       </div>
 
+      <div className="content-body-container">
+        <div className="content-container">
+            <title1>Guide</title1>
+            <title2>AI</title2>
+            <ul>
+              <li>You can use your own language</li>
+              <li>Spell mistakes aren't corrected</li>
+              <li>For search in the inner database of attacks, you must use one of those keywords: id, name, phase name, description, detection</li>
+              <li>The keywords must be seperate as words. To demonstrate, md5, hash, id, phase name</li>
+              <li>All keywords: id, description, phase name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress, hash, checksum, filehash.</li>
+              <li>Usage example for database search for all attacks with "windows" within its name: search in database for object with name windows</li>
+              <li>Usage example for virustotal search for md5 virus status: check md5 xxxxx</li>
+            </ul>
+        </div>
+      </div>
+
       {showResults && (
         <div className="content-body-container">
           <div className="content-container">
@@ -244,13 +260,14 @@ export default function Home() {
 
       <button onClick={toggleSearchBar} className="fixed-button">
         AI
-      </button>
+      </button>=
 
       {showSearchBar && (
         <div ref={searchBarRef} className="search-bar">
+          <p></p>
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search data within the database or 'virustotal'..."
             value={AISearchbar}
             onChange={handleAISearchBarChanged}
           />

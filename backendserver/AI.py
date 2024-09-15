@@ -17,6 +17,7 @@ def extract_key_value(sentence):
     words = sentence.lower().split()
 
     i = 0
+
     while i < len(words):
         word = words[i]
         if word in all_keys:
@@ -63,26 +64,27 @@ def getVirustotalResults(results: dict[str, str]):
             response = requests.get(url, params=params)
             data = response.json()
 
-            return data.get('positives', 0) == 0
-    
-    return False
+            result = data.get('positives', 0)
+
+            if result > 0:
+                return 'Malicious'
+
+            return 'Clean'
+  
+    return 'Unknown'
 
 def main():
-    #args = sys.argv
-    #if len(args) > 1:
-        #args = args[1:]
-    try:
-        #if not args or len(args) <= 1:
-            #sentence = args[0]
+    args = sys.argv
 
-            #raise ValueError("No input sentence provided")
+    try:
+        if not args or len(args) <= 1:
+            raise ValueError("No input sentence provided")
         
-        sentence = 'md5 5d41402abc4b2a76b9719d911017c592'
+        sentence = args[1]
+
         results = extract_key_value(sentence)
         with open('output.txt', 'w') as file:
-            result = str(getVirustotalResults(results))
-            print(result)
-            file.write('results')
+            file.write(str(getVirustotalResults(results)) + "\n" + str(results))
 
     except Exception as e:
         error_message = f"Error occurred: {str(e)}"

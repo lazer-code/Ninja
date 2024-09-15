@@ -10,7 +10,7 @@ async def handler(websocket, path):
         async for message in websocket:
             message: str = message.lower()
 
-            print (f'Message: {message}')
+            print (f'\033[32mMessage: {message}\033[0m')
 
             client = MongoClient('mongodb://localhost:27017/')
             db = client['ninjas_database']
@@ -21,12 +21,9 @@ async def handler(websocket, path):
 
                 result = subprocess.run(['python', 'AI.py', message], capture_output=True, text=True)
                 with open ('output.txt', 'r') as file:
-                    results: list[dict[str, str]] = [json.load(file)]
-                    print(results)
-                os.remove('output.txt')
-                
-                print('ai')
+                    results: list[str] = [file.read()]
 
+                os.remove('output.txt')
 
             elif message.startswith('normal search '):
                 message = message.replace('normal search ', '')
@@ -42,27 +39,17 @@ async def handler(websocket, path):
                         {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
                     ))
                 
-                    print('all')
-
-                else:
-                    print('normal')
-
             if message == 'all':
                 results: list[dict[str, str]] = list(collection.find(
                     {},
                     {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
                 ))
-                
-                print('all')
 
+            print(f'\033[36m{type(results)}\033[0m')
+            print(results)
 
-            if message.startswith('select '):
-                message = message.replace('select ', '')
-                results: list[dict[str, str]] = [collection.find_one({'name': message})]
-
-                print('select')
-            
             str_results: str = json.dumps(results, default=str)
+
             await websocket.send(str_results)
 
     except Exception as e:
