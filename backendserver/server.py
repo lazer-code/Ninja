@@ -25,11 +25,16 @@ class AI:
             apikey = '3704563ee024370204fca6814514fe33d0713f10b4385bbd9d4d8f552fd2fec0'
 
             for key, value in res.items():
+                if key == 'type':
+                    continue
+
+                if key in attack_keys:
+                    return f'attack {key},{value}'
+                
                 if key not in attack_keys:
                     r = requests.get('https://www.virustotal.com/vtapi/v2/file/report', params={'apikey': apikey, 'resource': value})
                     return 'Malicious' if r.json().get('positives', 0) > 0 else 'Clean'
                 
-            return 'attack'
         return 'Unknown'
 
 collection = MongoClient('mongodb://localhost:27017/')['ninjas_database']['attacks_patterns_collection']
@@ -40,11 +45,17 @@ async def handler(websocket, _):
 
         if msg.startswith('ai search '):
             result = [AI.getVirustotalResults(msg[10:])]
+            if 'attack ' in result[0]:
+                
+                result = result[0].replace('attack ', '').split(',')
+                query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+                result = list(collection.find(query, {'_id': 0}))
 
         else:
             query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
             result = list(collection.find(query, {'_id': 0}))
             
+        print(result)
         await websocket.send(json.dumps(result))
 
 async def main():

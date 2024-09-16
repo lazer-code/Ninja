@@ -43,9 +43,14 @@ export default function Home() {
         const parsedData = JSON.parse(event.data);
         setData(Array.isArray(parsedData) ? parsedData : []);
         setHasResults(parsedData.length > 0);
-      } catch {
-        setData([]);
-        setHasResults(false);
+      } catch (error) {
+        if (event.data === 'malicious') {
+          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: [], phase_name: "N/A", x_mitre_detection: "N/A" }]);
+          setHasResults(true);
+        } else {
+          setData([]);
+          setHasResults(false);
+        }
       }
     };
 
@@ -84,17 +89,23 @@ export default function Home() {
         }
       };
       ws.current.addEventListener("open", handleOpen, { once: true });
-      ws.current.addEventListener("message", (event) => {
-        try {
-          const parsedData = JSON.parse(event.data);
-          setData(Array.isArray(parsedData) ? parsedData : []);
-          setHasResults(parsedData.length > 0);
-        } catch {
+    }
+
+    ws.current.addEventListener("message", (event) => {
+      try {
+        const parsedData = JSON.parse(event.data);
+        setData(Array.isArray(parsedData) ? parsedData : []);
+        setHasResults(parsedData.length > 0);
+      } catch (error) {
+        if (event.data === 'malicious') {
+          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: [], phase_name: "N/A", x_mitre_detection: "N/A" }]);
+          setHasResults(true);
+        } else {
           setData([]);
           setHasResults(false);
         }
-      });
-    }
+      }
+    });
   };
 
   const handleSearchBarChanged = (e) => {
@@ -164,24 +175,23 @@ export default function Home() {
           <div className="overlay">
             <h2>Attack like a</h2>
             <h1>Ninja</h1>
-            <h2>{searchType}</h2>
           </div>
         </div>
       </div>
 
       <div className="content-body-container">
         <div className="content-container">
-            <title1>Guide</title1>
-            <title2>AI</title2>
-            <ul>
-              <li>You can use your own language</li>
-              <li>Spell mistakes aren't corrected</li>
-              <li>For search in the inner database of attacks, you must use one of those keywords: id, name, phase name, description, detection</li>
-              <li>The keywords must be seperate as words. To demonstrate, md5, hash, id, phase name</li>
-              <li>All keywords: id, description, phase name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress, hash, checksum, filehash.</li>
-              <li>Usage example for database search for all attacks with "windows" within its name: search in database for object with name windows</li>
-              <li>Usage example for virustotal search for md5 virus status: check md5 xxxxx</li>
-            </ul>
+          <title1>Guide</title1>
+          <title2>AI</title2>
+          <ul>
+            <li>You can use your own language</li>
+            <li>Spell mistakes aren't corrected</li>
+            <li>For search in the inner database of attacks, you must use one of those keywords: id, name, phase name, description, detection</li>
+            <li>The keywords must be separate as words. To demonstrate, md5, hash, id, phase name</li>
+            <li>All keywords: id, description, phase name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress, hash, checksum, filehash.</li>
+            <li>Usage example for database search for all attacks with "windows" within its name: search in database for object with name windows</li>
+            <li>Usage example for virustotal search for md5 virus status: check md5 xxxxx</li>
+          </ul>
         </div>
       </div>
 
@@ -249,18 +259,57 @@ export default function Home() {
         <div className="content-body-container">
           <div className="content-container">
             <h3>AI Search Results - {AISearchbar}</h3>
-            <p>{data.length > 0 ? data.map((result, index) => (
-              <div key={index}>
-                <pre>{JSON.stringify(result, null, 2)}</pre>
-              </div>
-            )) : 'No Results'}</p>
+            <ul>
+              {data.length > 0 ? (
+                data.map(({ id, name, description, x_mitre_platforms = [], phase_name, x_mitre_detection }, index) => (
+                  <React.Fragment key={id}>
+                    <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                      <p style={{ flex: "1" }}>{name}</p>
+                      <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
+                        {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
+                          x_mitre_platforms.map((platform) => (
+                            <span className="icon-container" key={platform}>
+                              {platformIcons[platform] || platform}
+                              <span className="tooltip">{platform}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span>{data}</span>
+                        )}
+                      </p>
+                      <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
+                      <button onClick={() => handleItemClicked(index)}>
+                        {selectedIndex === index ? "v" : "^"}
+                      </button>
+                    </li>
+                    {selectedIndex === index && (
+                      <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
+                        <div>
+                          <h3>Id</h3>
+                          <p>{id}</p>
+                          <br />
+                          <h3>Description</h3>
+                          <p>{description}</p>
+                          <br />
+                          <h3>Detection</h3>
+                          <p>{x_mitre_detection}</p>
+                          <br />
+                        </div>
+                      </li>
+                    )}
+                  </React.Fragment>
+                ))
+              ) : (
+                <p>No Results</p>
+              )}
+            </ul>
           </div>
         </div>
       )}
 
       <button onClick={toggleSearchBar} className="fixed-button">
         AI
-      </button>=
+      </button>
 
       {showSearchBar && (
         <div ref={searchBarRef} className="search-bar">
