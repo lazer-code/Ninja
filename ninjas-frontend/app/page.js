@@ -278,9 +278,9 @@ export default function Home() {
                         )}
                       </p>
                       <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
-                      <button onClick={() => handleItemClicked(index)}>
-                        {selectedIndex === index ? "v" : "^"}
-                      </button>
+                        <button onClick={() => handleItemClicked(index)}>
+                          {selectedIndex === index ? "v" : "^"}
+                        </button>
                     </li>
                     {selectedIndex === index && (
                       <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>

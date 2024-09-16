@@ -40,23 +40,28 @@ class AI:
 collection = MongoClient('mongodb://localhost:27017/')['ninjas_database']['attacks_patterns_collection']
 
 async def handler(websocket, _):
-    async for message in websocket:
-        msg = message.lower()
+    try:
+        async for message in websocket:
+            msg = message.lower()
+            if msg.startswith('ai search '):
+                result = [AI.getVirustotalResults(msg[10:])]
 
-        if msg.startswith('ai search '):
-            result = [AI.getVirustotalResults(msg[10:])]
-            if 'attack ' in result[0]:
-                
-                result = result[0].replace('attack ', '').split(',')
-                query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+                if 'attack ' in result[0]:
+                    result = result[0].replace('attack ', '').split(',')
+                    print(result)
+                    query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+                    result = list(collection.find(query, {'_id': 0}))
+
+            else:
+                query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                 result = list(collection.find(query, {'_id': 0}))
+                
+            print(result)
+            await websocket.send(json.dumps(result))
 
-        else:
-            query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
-            result = list(collection.find(query, {'_id': 0}))
-            
-        print(result)
-        await websocket.send(json.dumps(result))
+    except Exception as e:
+        print(f"Error: {e}")
+        await websocket.close()
 
 async def main():
     async with websockets.serve(handler, 'localhost', 8000):
