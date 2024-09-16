@@ -1,62 +1,54 @@
-import os
-import asyncio
-import websockets
-import json
-import subprocess
+import os, asyncio, websockets, json, requests
 from pymongo import MongoClient
 
-async def handler(websocket, path):
-    try:
-        async for message in websocket:
-            message: str = message.lower()
+attack_keys = {"id", "description", "phase name", "name", "platform", "detection"}
+all_keys = attack_keys | {"md5", "sha1", "sha256", "sha512", "bcrypt", "aes", "rsa", "url", "website", "link", "ip", "ipaddress", "hash", "checksum", "filehash"}
 
-            print (f'\033[32mMessage: {message}\033[0m')
+class AI:
+    @staticmethod
+    def extract_key_value(sentence):
+        words = sentence.lower().split()
 
-            client = MongoClient('mongodb://localhost:27017/')
-            db = client['ninjas_database']
-            collection = db['attacks_patterns_collection']
+        for i, word in enumerate(words):
+            if word in all_keys:
+                for j in range(i + 1, len(words)):
+                    if words[j] not in {"value", "is", "for", "the", "with", "of"}:
+                        return {'type': 'database search' if word in attack_keys else 'online search', word: words[j]}
+                    
+        return "Invalid request"
 
-            if message.startswith('ai search '):
-                message = message.replace('ai search ', '')
+    @staticmethod
+    def getVirustotalResults(sentence: str):
+        res = AI.extract_key_value(sentence)
 
-                result = subprocess.run(['python', 'AI.py', message], capture_output=True, text=True)
-                with open ('output.txt', 'r') as file:
-                    results: list[str] = [file.read()]
+        if isinstance(res, dict):
+            apikey = '3704563ee024370204fca6814514fe33d0713f10b4385bbd9d4d8f552fd2fec0'
 
-                os.remove('output.txt')
-
-            elif message.startswith('normal search '):
-                message = message.replace('normal search ', '')
-
-                results: list[dict[str, str]] = list(collection.find(
-                    {'description': {'$regex': message, '$options': 'i'}},
-                    {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
-                ))
-
-                if message == '':
-                    results: list[dict[str, str]] = list(collection.find(
-                        {},
-                        {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
-                    ))
+            for key, value in res.items():
+                if key not in attack_keys:
+                    r = requests.get('https://www.virustotal.com/vtapi/v2/file/report', params={'apikey': apikey, 'resource': value})
+                    return 'Malicious' if r.json().get('positives', 0) > 0 else 'Clean'
                 
-            if message == 'all':
-                results: list[dict[str, str]] = list(collection.find(
-                    {},
-                    {'_id': 0, 'name': 1, 'description': 1, 'id': 1, 'x_mitre_platforms': 1, 'x_mitre_detection': 1, 'phase_name': 1}
-                ))
+            return 'attack'
+        return 'Unknown'
 
-            print(f'\033[36m{type(results)}\033[0m')
-            print(results)
+collection = MongoClient('mongodb://localhost:27017/')['ninjas_database']['attacks_patterns_collection']
 
-            str_results: str = json.dumps(results, default=str)
+async def handler(websocket, _):
+    async for message in websocket:
+        msg = message.lower()
 
-            await websocket.send(str_results)
+        if msg.startswith('ai search '):
+            result = [AI.getVirustotalResults(msg[10:])]
 
-    except Exception as e:
-        print(f'Error: {e}')
+        else:
+            query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
+            result = list(collection.find(query, {'_id': 0}))
+            
+        await websocket.send(json.dumps(result))
 
-while True:
-    start_server = websockets.serve(handler, 'localhost', 8000)
+async def main():
+    async with websockets.serve(handler, 'localhost', 8000):
+        await asyncio.Future()
 
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+asyncio.run(main())
