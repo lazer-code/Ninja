@@ -56,7 +56,6 @@ async def handler(websocket, _):
                 query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                 result = list(collection.find(query, {'_id': 0}))
                 
-            print(result)
             await websocket.send(json.dumps(result))
 
     except Exception as e:
