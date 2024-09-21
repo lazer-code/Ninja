@@ -1,7 +1,7 @@
 import os, asyncio, websockets, json, requests
 from pymongo import MongoClient
 
-attack_keys = {"id", "description", "phase name", "name", "platform", "detection"}
+attack_keys = {"id", "description", "phase_name", "name", "platform", "detection"}
 all_keys = attack_keys | {"md5", "sha1", "sha256", "sha512", "bcrypt", "aes", "rsa", "url", "website", "link", "ip", "ipaddress", "hash", "checksum", "filehash"}
 
 class AI:
@@ -48,14 +48,13 @@ async def handler(websocket, _):
 
                 if 'attack ' in result[0]:
                     result = result[0].replace('attack ', '').split(',')
-                    print(result)
                     query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
                     result = list(collection.find(query, {'_id': 0}))
 
             else:
                 query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                 result = list(collection.find(query, {'_id': 0}))
-                
+            
             await websocket.send(json.dumps(result))
 
     except Exception as e:
