@@ -45,10 +45,19 @@ async def handler(websocket, _):
             msg = message.lower()
             if msg.startswith('ai search '):
                 result = [AI.getVirustotalResults(msg[10:])]
-
                 if 'attack ' in result[0]:
                     result = result[0].replace('attack ', '').split(',')
-                    query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+                    print(result)
+                    if 'platform' in result[0].lower():
+                        attack_platforms: dict[str, str] = {'windows': 'Windows', 'linux': 'Linux', 'macos': 'macOS', 'mac-os': 'macOS', 'network': 'Network',
+                                     'pre': 'PRE', 'containers': 'Containers', 'iaas': 'IaaS', 'azure-ad': 'Azure AD',
+                                     'office-365': 'Office 365', 'saas': 'SaaS', 'google-workspace': 'Google Workspace'}                        
+
+                        query = {"x_mitre_platforms": {"$in": [attack_platforms[result[1]]]}}
+                    
+                    else:
+                        query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+
                     result = list(collection.find(query, {'_id': 0}))
 
             else:

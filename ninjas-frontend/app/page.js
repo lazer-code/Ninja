@@ -14,6 +14,8 @@ const platformIcons = {
   "Office 365": <img src="/icons/office.png" alt="Office 365" />,
   SaaS: <img src="/icons/saas.png" alt="SaaS" />,
   "Google Workspace": <img src="/icons/google.png" alt="Google Workspace" />,
+  Infected: <img src="/icons/infected.png" alt="Infected"/>,
+  Clean: <img src="/icons/clean.png" alt="Clean"/>
 };
 
 export default function Home() {
@@ -45,7 +47,7 @@ export default function Home() {
         setHasResults(parsedData.length > 0);
       } catch (error) {
         if (event.data === 'malicious') {
-          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: [], phase_name: "N/A", x_mitre_detection: "N/A" }]);
+          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: ['infected'], phase_name: "N/A", x_mitre_detection: "N/A" }]);
           setHasResults(true);
         } else {
           setData([]);
@@ -98,7 +100,7 @@ export default function Home() {
         setHasResults(parsedData.length > 0);
       } catch (error) {
         if (event.data === 'malicious') {
-          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: [], phase_name: "N/A", x_mitre_detection: "N/A" }]);
+          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: ['infected'], phase_name: "N/A", x_mitre_detection: "N/A" }]);
           setHasResults(true);
         } else {
           setData([]);
