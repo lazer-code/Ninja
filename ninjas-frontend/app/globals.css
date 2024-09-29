@@ -318,3 +318,42 @@ button:focus {
   padding: 2%;
   color: white;
 }
+
+.file-upload-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.file-label {
+  padding: 12px 24px;
+  background-color: indianred;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.file-label:hover {
+  background-color: #cf3d3d;
+}
+
+.file-input {
+  display: none;
+}
+
+.submit-btn {
+  padding: 12px 24px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.submit-btn:hover {
+  background-color: #218838;
+}

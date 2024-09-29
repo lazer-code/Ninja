@@ -155,6 +155,27 @@ export default function Home() {
     sendData(AISearchbar, "AI Search");
   };
 
+  const fileInputRef = useRef(null);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      onFileUpload(formData);
+    }
+  };
+
+  const onFileUpload = async (formData) => {
+    try
+    {
+      const response = await fetch("http://localhost:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+    }
+    
+    catch (error){}
+  };
   return (
     <>
       <div className="menu">
@@ -169,6 +190,18 @@ export default function Home() {
             onChange={handleSearchBarChanged}
             onFocus={handleFocusSearchBar}
           />
+        </div>
+        
+        <div className="file-uploader">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="file-input"
+          />
+          <label className="file-label" onClick={() => fileInputRef.current.click()}>
+            Check A File
+          </label>
         </div>
       </div>
 
