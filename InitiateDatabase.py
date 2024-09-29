@@ -27,3 +27,7 @@ if 'ninjas_database' not in client.list_database_names():
     db = client['ninjas_database']
     collection = db['attacks_patterns_collection']
     collection.insert_many(attacks)
+    print('Database was created successfully')
+
+else:
+    print('Database is already there')

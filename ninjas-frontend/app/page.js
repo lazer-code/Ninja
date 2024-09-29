@@ -156,26 +156,21 @@ export default function Home() {
   };
 
   const fileInputRef = useRef(null);
+
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-      onFileUpload(formData);
-    }
+      const file = e.target.files[0];
+      if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+              const fileData = reader.result;
+              if (ws.current && wsReady) {
+                  ws.current.send(fileData);
+              }
+          };
+          reader.readAsArrayBuffer(file);
+      }
   };
 
-  const onFileUpload = async (formData) => {
-    try
-    {
-      const response = await fetch("http://localhost:8000/upload", {
-        method: "POST",
-        body: formData,
-      });
-    }
-    
-    catch (error){}
-  };
   return (
     <>
       <div className="menu">
