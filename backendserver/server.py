@@ -50,20 +50,21 @@ async def handler(websocket, _):
                 current_filename = data.get('filename')
                 file_path = os.path.join('uploads',current_filename)
 
-                with open(file_path, 'w') as file:
-                    file.write('')
-
-                chunk = ""
+                file_content = await websocket.recv()
 
                 while True:
                     chunk = await websocket.recv()
-                    print(chunk)
 
                     if chunk == 'EOF':
                         break
 
-                    with open(file_path, 'ab') as file:
-                        file.write(chunk)
+                    file_content += chunk
+
+                if not os.path.exists('uploads'):
+                    os.makedirs('uploads')
+
+                with open(file_path, 'wb') as file:
+                    file.write(file_content)
 
                 result: list = ['FILE']
             
@@ -96,6 +97,7 @@ async def handler(websocket, _):
                         query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                         result = list(collection.find(query, {'_id': 0}))
 
+            print(result)
             await websocket.send(json.dumps(result))
 
     except Exception as e:
