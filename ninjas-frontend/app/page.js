@@ -117,39 +117,41 @@ export default function Home() {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-
     const maxSize = 650 * 1024 * 1024;
-
+    
     if (file.size > maxSize)
     {
-      alert('File size exceeds 650 MB')
+      alert('File size exceeds 650 MB');
       e.target.value = '';
     }
-
+    
     else
     {
-      const chunkSize = 1024 * 1024;
+      let offset = 0;
+      const chunkSize = 0.5 * 1024 * 1024;
       const totalChunks = Math.ceil(file.size / chunkSize);
-  
-      ws.current.send(json.stringify({ filename: file.name, totalChunks }))
-  
-      let currentChunk = 0;
+    
+      ws.current.send(JSON.stringify({ filename: file.name, totalChunks }));
+    
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        ws.current.send(reader.result);
+        offset += chunkSize;
+        
+        if (offset < file.size)
+          sendChunk();
+
+        else
+          ws.current.send('EOF');
+      }
 
       const sendChunk = () => {
-        const start = currentChunk * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
-        const chunk = file.slice(start, end);
-        const reader = new FileReader();
-
-        reader.onload = () => {
-          ws.current.send(reader.result);
-          currentChunk++;
-
-          if (currentChunk < totalChunks)
-            sendChunk();
-        };
+        const chunk = file.slice(offset, offset + chunkSize);
         reader.readAsArrayBuffer(chunk);
-      };
+      }
+
+      sendChunk();
     }
   };
   
@@ -176,6 +178,7 @@ export default function Home() {
             onChange={handleFileChange}
             className="file-input"
             id="fileinput"
+            accept="*"
           />
           <label className="file-label" onClick={() => fileInputRef.current.click()}>
             Check A File
