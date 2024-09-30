@@ -130,7 +130,10 @@ export default function Home() {
       let offset = 0;
       const chunkSize = 0.5 * 1024 * 1024;
       const totalChunks = Math.ceil(file.size / chunkSize);
-    
+      
+      if (!(ws.current && wsReady))
+        ws.current = new WebSocket("ws://localhost:8000");
+  
       ws.current.send(JSON.stringify({ filename: file.name, totalChunks }));
     
       const reader = new FileReader();
@@ -204,7 +207,7 @@ export default function Home() {
             <li>Spell mistakes aren't corrected</li>
             <li>For search in the inner database of attacks, you must use one of those keywords: id, name, phase name, description, detection</li>
             <li>The keywords must be separate as words. To demonstrate, md5, hash, id, phase name</li>
-            <li>All keywords: id, description, phase_name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress, hash, checksum, filehash.</li>
+            <li>All keywords: id, description, phase_name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress.</li>
             <li>Usage example for database search for all attacks with "windows" within its name: search in database for object with name windows</li>
             <li>Usage example for virustotal search for md5 virus status: check md5 xxxxx</li>
           </ul>

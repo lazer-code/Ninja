@@ -1,8 +1,12 @@
-import os, asyncio, websockets, json, requests
+import os, asyncio, websockets, json, requests, base64
 from pymongo import MongoClient
 
-attack_keys = {"id", "description", "phase_name", "name", "platform", "detection"}
-all_keys = attack_keys | {"md5", "sha1", "sha256", "sha512", "bcrypt", "aes", "rsa", "url", "website", "link", "ip", "ipaddress", "hash", "checksum", "filehash"}
+attack_keys = {"id", "description", "phase name", "name", "platform", "detection"}
+encryption_types = {"md5", "sha1", "sha256", "sha512", "bcrypt", "aes", "rsa"}
+url_like_words = {"url", "website", "link"}
+ip_address_like_words = {"ip", "ipaddress"}
+
+all_keys = attack_keys | encryption_types | url_like_words | ip_address_like_words
 
 current_filename = ''
 
@@ -30,12 +34,38 @@ class AI:
                 if key == 'type':
                     continue
 
+
+
                 if key in attack_keys:
                     return f'attack {key},{value}'
                 
                 if key not in attack_keys:
                     r = requests.get('https://www.virustotal.com/vtapi/v2/file/report', params={'apikey': apikey, 'resource': value})
                     return 'Malicious' if r.json().get('positives', 0) > 0 else 'Clean'
+                
+
+                url = 'https://www.virustotal.com/api/v3/'
+                headers = {'x-apikey': apikey}
+
+                if key in encryption_types:
+                    url += f'files/'
+
+                elif key in url_like_words:
+                    value = base64.urlsafe_b64encode(value.encode()).decode().strip('=')
+                    url += f'urls/'
+
+                elif key in ip_address_like_words:
+                    url += 'ip_addresses/'
+
+                r = requests.get(url + value, headers=headers)
+
+                print(r)
+
+                try:
+                    return 'clean' if r['data']['attributes']['last_analysis_stats']['malicious'] == 0 else 'Malicious'
+                
+                except Exception as e:
+                    return f'{value} is not a {key}'
                 
         return 'Unknown'
 
@@ -45,6 +75,7 @@ async def handler(websocket, _):
     try:
         async for message in websocket:
             print(message)
+            
             try:
                 data = json.loads(message)
                 current_filename = data.get('filename')
@@ -93,11 +124,10 @@ async def handler(websocket, _):
                             result = list(collection.find(query, {'_id': 0}))
 
                     else:
-                        msg = message.replace('normal search', '')
+                        msg = msg.replace('normal search', '')
                         query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                         result = list(collection.find(query, {'_id': 0}))
 
-            print(result)
             await websocket.send(json.dumps(result))
 
     except Exception as e:
