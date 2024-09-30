@@ -48,7 +48,10 @@ async def handler(websocket, _):
             try:
                 data = json.loads(message)
                 current_filename = data.get('filename')
-                print(current_filename)
+                file_path = os.path.join('uploads',current_filename)
+
+                with open(file_path, 'w') as file:
+                    file.write('')
 
                 chunk = ""
 
@@ -59,7 +62,6 @@ async def handler(websocket, _):
                     if chunk == 'EOF':
                         break
 
-                    file_path = os.path.join('uploads',current_filename)
                     with open(file_path, 'ab') as file:
                         file.write(chunk)
 
