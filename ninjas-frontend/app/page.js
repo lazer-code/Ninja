@@ -21,12 +21,11 @@ const platformIcons = {
 export default function Home() {
   const [AISearchbar, setAISearchbar] = useState("");
   const [searchbar, setSearchbar] = useState("");
+  const [finalSearch, setFinalSearch] = useState("All");
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchType, setSearchType] = useState("Normal Search");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [data, setData] = useState([]);
-  const [hasResults, setHasResults] = useState(true);
-  const [showResults, setShowResults] = useState(true);
   const [wsReady, setWsReady] = useState(false);
 
   const ws = useRef(null);
@@ -34,97 +33,56 @@ export default function Home() {
 
   useEffect(() => {
     ws.current = new WebSocket("ws://localhost:8000");
-
-    const handleOpen = () => {
-      setWsReady(true);
-      ws.current.send("All");
-    };
-
-    const handleMessage = (event) => {
-      try {
-        const parsedData = JSON.parse(event.data);
-        setData(Array.isArray(parsedData) ? parsedData : []);
-        setHasResults(parsedData.length > 0);
-      } catch (error) {
-        if (event.data === 'malicious') {
-          setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: ['infected'], phase_name: "N/A", x_mitre_detection: "N/A" }]);
-          setHasResults(true);
-        } else {
-          setData([]);
-          setHasResults(false);
-        }
-      }
-    };
-
-    const handleError = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    const handleClose = () => {
-      setWsReady(false);
-    };
-
-    ws.current.addEventListener("open", handleOpen);
-    ws.current.addEventListener("message", handleMessage);
-    ws.current.addEventListener("error", handleError);
-    ws.current.addEventListener("close", handleClose);
-
-    return () => {
-      if (ws.current) {
-        ws.current.removeEventListener("open", handleOpen);
-        ws.current.removeEventListener("message", handleMessage);
-        ws.current.removeEventListener("error", handleError);
-        ws.current.removeEventListener("close", handleClose);
-        ws.current.close();
-      }
-    };
+      sendData("All", searchType);
   }, []);
 
   const sendData = (query, type) => {
-    if (ws.current && wsReady) {
+    if (ws.current && wsReady)
       ws.current.send(`${type} ${query || "All"}`);
-    } else {
+
+    else
+    {
       ws.current = new WebSocket("ws://localhost:8000");
       const handleOpen = () => {
-        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        
+        if (ws.current && ws.current.readyState === WebSocket.OPEN)
           ws.current.send(`${type} ${query || "All"}`);
-        }
       };
       ws.current.addEventListener("open", handleOpen, { once: true });
     }
 
     ws.current.addEventListener("message", (event) => {
-      try {
+      try
+      {
         const parsedData = JSON.parse(event.data);
         setData(Array.isArray(parsedData) ? parsedData : []);
-        setHasResults(parsedData.length > 0);
-      } catch (error) {
-        if (event.data === 'malicious') {
+      }
+      
+      catch (error)
+      {
+        if (event.data === 'malicious')
           setData([{ id: "N/A", name: "Malicious", description: "This result is classified as malicious", x_mitre_platforms: ['infected'], phase_name: "N/A", x_mitre_detection: "N/A" }]);
-          setHasResults(true);
-        } else {
+        
+        else
           setData([]);
-          setHasResults(false);
-        }
       }
     });
   };
 
   const handleSearchBarChanged = (e) => {
     const value = e.target.value;
+
+    if (value == "")
+      setFinalSearch("All");
+
     setSearchbar(value);
     setSearchType("Normal Search");
     sendData(value, "Normal Search");
-    setShowResults(true);
+    setFinalSearch(value);
   };
 
   const handleAISearchBarChanged = (e) => {
     setAISearchbar(e.target.value);
-  };
-
-  const handleFocusSearchBar = (e) => {
-    setShowResults(true);
-    handleSearchBarChanged(e);
   };
 
   const handleItemClicked = useCallback((index) => {
@@ -140,37 +98,61 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (showSearchBar) {
+    if (showSearchBar)
       document.addEventListener("click", handleClickOutside);
-    } else {
+    
+    else
       document.removeEventListener("click", handleClickOutside);
-    }
 
     return () => document.removeEventListener("click", handleClickOutside);
   }, [showSearchBar, handleClickOutside]);
 
   const handleSendClick = () => {
     setSearchType("AI Search");
-    setShowResults(false);
     sendData(AISearchbar, "AI Search");
+    setFinalSearch(AISearchbar);
   };
 
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-              const fileData = reader.result;
-              if (ws.current && wsReady) {
-                  ws.current.send(fileData);
-              }
-          };
-          reader.readAsArrayBuffer(file);
-      }
-  };
+    const file = e.target.files[0];
 
+    const maxSize = 650 * 1024 * 1024;
+
+    if (file.size > maxSize)
+    {
+      alert('File size exceeds 650 MB')
+      e.target.value = '';
+    }
+
+    else
+    {
+      const chunkSize = 1024 * 1024;
+      const totalChunks = Math.ceil(file.size / chunkSize);
+  
+      ws.current.send(json.stringify({ filename: file.name, totalChunks }))
+  
+      let currentChunk = 0;
+
+      const sendChunk = () => {
+        const start = currentChunk * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+        const chunk = file.slice(start, end);
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          ws.current.send(reader.result);
+          currentChunk++;
+
+          if (currentChunk < totalChunks)
+            sendChunk();
+        };
+        reader.readAsArrayBuffer(chunk);
+      };
+    }
+  };
+  
   return (
     <>
       <div className="menu">
@@ -183,7 +165,7 @@ export default function Home() {
             placeholder="Search..."
             value={searchbar}
             onChange={handleSearchBarChanged}
-            onFocus={handleFocusSearchBar}
+            onFocus={handleSearchBarChanged}
           />
         </div>
         
@@ -193,6 +175,7 @@ export default function Home() {
             ref={fileInputRef}
             onChange={handleFileChange}
             className="file-input"
+            id="fileinput"
           />
           <label className="file-label" onClick={() => fileInputRef.current.click()}>
             Check A File
@@ -225,121 +208,57 @@ export default function Home() {
         </div>
       </div>
 
-      {showResults && (
-        <div className="content-body-container">
-          <div className="content-container">
-            <h2>Normal Search Results - {searchbar || "All"}</h2>
-            <ul>
-              <li style={{ display: "flex", alignItems: "center", borderBottom: "5px solid #ccc" }}>
-                <p style={{ flex: "1" }}>Name</p>
-                <p style={{ flex: "2", textAlign: "center" }}>Platforms</p>
-                <p style={{ flex: "1", textAlign: "center" }}>Phase Name</p>
-                <p style={{ flex: "1", textAlign: "center" }}>Action</p>
-              </li>
-            </ul>
-            {hasResults ? (
-              <ul>
-                {data.map(({ name, x_mitre_platforms = [], phase_name, description, x_mitre_detection, id }, index) => (
-                  <React.Fragment key={id}>
-                    <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                      <p style={{ flex: "1" }}>{name}</p>
-                      <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
-                        {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
-                          x_mitre_platforms.map((platform) => (
-                            <span className="icon-container" key={platform}>
-                              {platformIcons[platform] || platform}
-                              <span className="tooltip">{platform}</span>
-                            </span>
-                          ))
-                        ) : (
-                          <span>No Platforms</span>
-                        )}
-                      </p>
-                      <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
+      <div className="content-body-container">
+        <div className="content-container">
+          <h3>{searchType} Results - {finalSearch}</h3>
+          <ul>
+            {data.length > 0 ? (
+              data.map(({ id, name, description, x_mitre_platforms = [], phase_name, x_mitre_detection }, index) => (
+                <React.Fragment key={id}>
+                  <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                    <p style={{ flex: "1" }}>{name}</p>
+                    <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
+                      {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
+                        x_mitre_platforms.map((platform) => (
+                          <span className="icon-container" key={platform}>
+                            {platformIcons[platform] || platform}
+                            <span className="tooltip">{platform}</span>
+                          </span>
+                        ))
+                      ) : (
+                        <span>{data}</span>
+                      )}
+                    </p>
+                    <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
+                    {(x_mitre_platforms && x_mitre_platforms.length > 0) && (
                       <button onClick={() => handleItemClicked(index)}>
                         {selectedIndex === index ? "v" : "^"}
                       </button>
-                    </li>
-                    {selectedIndex === index && (
-                      <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
-                        <div>
-                          <h3>Id</h3>
-                          <p>{id}</p>
-                          <br />
-                          <h3>Description</h3>
-                          <p>{description}</p>
-                          <br />
-                          <h3>Detection</h3>
-                          <p>{x_mitre_detection}</p>
-                          <br />
-                        </div>
-                      </li>
                     )}
-                  </React.Fragment>
-                ))}
-              </ul>
+                  </li>
+                  {selectedIndex === index && (
+                    <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
+                      <div>
+                        <h3>Id</h3>
+                        <p>{id}</p>
+                        <br />
+                        <h3>Description</h3>
+                        <p>{description}</p>
+                        <br />
+                        <h3>Detection</h3>
+                        <p>{x_mitre_detection}</p>
+                        <br />
+                      </div>
+                    </li>
+                  )}
+                </React.Fragment>
+              ))
             ) : (
               <p>No Results</p>
             )}
-          </div>
+          </ul>
         </div>
-      )}
-
-      {!showResults && (
-        <div className="content-body-container">
-          <div className="content-container">
-            <h3>AI Search Results - {AISearchbar}</h3>
-            <ul>
-              {data.length > 0 ? (
-                data.map(({ id, name, description, x_mitre_platforms = [], phase_name, x_mitre_detection }, index) => (
-                  <React.Fragment key={id}>
-                    <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                      <p style={{ flex: "1" }}>{name}</p>
-                      <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
-                        {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
-                          x_mitre_platforms.map((platform) => (
-                            <span className="icon-container" key={platform}>
-                              {platformIcons[platform] || platform}
-                              <span className="tooltip">{platform}</span>
-                            </span>
-                          ))
-                        ) : (
-                          <span>{data}</span>
-                        )}
-                      </p>
-                      <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
-                      {(x_mitre_platforms && x_mitre_platforms.length > 0) && (
-                        <button onClick={() => handleItemClicked(index)}>
-                          {selectedIndex === index ? "v" : "^"}
-                        </button>
-                      )}
-
-
-                    </li>
-                    {selectedIndex === index && (
-                      <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
-                        <div>
-                          <h3>Id</h3>
-                          <p>{id}</p>
-                          <br />
-                          <h3>Description</h3>
-                          <p>{description}</p>
-                          <br />
-                          <h3>Detection</h3>
-                          <p>{x_mitre_detection}</p>
-                          <br />
-                        </div>
-                      </li>
-                    )}
-                  </React.Fragment>
-                ))
-              ) : (
-                <p>No Results</p>
-              )}
-            </ul>
-          </div>
-        </div>
-      )}
+      </div>
 
       <button onClick={toggleSearchBar} className="fixed-button">
         AI

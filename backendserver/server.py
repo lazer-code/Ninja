@@ -43,43 +43,51 @@ collection = MongoClient('mongodb://localhost:27017/')['ninjas_database']['attac
 async def handler(websocket, _):
     try:
         async for message in websocket:
-            
-            if type(message) is bytes:
-                with open('uploadedfile', 'wb') as file:
-                    file.write(message)
+            print(message)
+            try:
+                data = json.loads(message)
+
+                if not os.path.exists('uploads'):
+                    os.makedirs('uploads')
+
+                file_path = os.path.join('uploads', data['filename'])
+                with open(file_path, 'wb') as file:
+                    file.write(bytearray(data['data']))
                 
-                with open('uploadedfile', 'rb') as file:
-                    result: list = [file.read()]
+                result: list = ['FILE']
             
-            elif type(message) is str:
-                msg = message.lower()
-                
-                if msg.startswith('ai search '):
-                    result = [AI.getVirustotalResults(msg[10:])]
+            except Exception as e:
+                print(e)
+                if type(message) is str:
+                    msg = message.lower()
                     
-                    if 'attack ' in result[0]:
-                        result = result[0].replace('attack ', '').split(',')
+                    if msg.startswith('ai search '):
+                        result = [AI.getVirustotalResults(msg[10:])]
                         
-                        if 'platform' in result[0].lower():
-                            attack_platforms: dict[str, str] = {'windows': 'Windows', 'linux': 'Linux', 'macos': 'macOS', 'mac-os': 'macOS', 'network': 'Network',
-                                        'pre': 'PRE', 'containers': 'Containers', 'iaas': 'IaaS', 'azure-ad': 'Azure AD',
-                                        'office-365': 'Office 365', 'saas': 'SaaS', 'google-workspace': 'Google Workspace'}                        
+                        if 'attack ' in result[0]:
+                            result = result[0].replace('attack ', '').split(',')
+                            
+                            if 'platform' in result[0].lower():
+                                attack_platforms: dict[str, str] = {'windows': 'Windows', 'linux': 'Linux', 'macos': 'macOS', 'mac-os': 'macOS', 'network': 'Network',
+                                            'pre': 'PRE', 'containers': 'Containers', 'iaas': 'IaaS', 'azure-ad': 'Azure AD',
+                                            'office-365': 'Office 365', 'saas': 'SaaS', 'google-workspace': 'Google Workspace'}                        
 
-                            query = {"x_mitre_platforms": {"$in": [attack_platforms[result[1]]]}}
+                                query = {"x_mitre_platforms": {"$in": [attack_platforms[result[1]]]}}
 
-                        else:
-                            query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+                            else:
+                                query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
 
+                            result = list(collection.find(query, {'_id': 0}))
+
+                    else:
+                        msg = message.replace('normal search')
+                        query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                         result = list(collection.find(query, {'_id': 0}))
-
-                else:
-                    query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
-                    result = list(collection.find(query, {'_id': 0}))
 
             await websocket.send(json.dumps(result))
 
     except Exception as e:
-        print(f"Error1: {e}")
+        print(e)
         await websocket.close()
 
 async def main():
