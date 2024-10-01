@@ -27,6 +27,7 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [data, setData] = useState([]);
   const [wsReady, setWsReady] = useState(false);
+  const [isUpload, setIsUpload] = useState(false);
 
   const ws = useRef(null);
   const searchBarRef = useRef(null);
@@ -118,49 +119,65 @@ export default function Home() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 650 * 1024 * 1024;
-    
-    if (file.size > maxSize)
+    const size = file.size
+    setIsUpload(true);
+
+    try
     {
-      alert('File size exceeds 650 MB');
-      e.target.value = '';
-    }
-    
-    else
-    {
-      let offset = 0;
-      const chunkSize = 0.5 * 1024 * 1024;
-      const totalChunks = Math.ceil(file.size / chunkSize);
+      if (size > maxSize)
+      {
+        alert('File size exceeds 650 MB');
+        e.target.value = '';
+      }
       
-      if (!(ws.current && wsReady))
-        ws.current = new WebSocket("ws://localhost:8000");
-  
-      ws.current.send(JSON.stringify({ filename: file.name, totalChunks }));
+      else
+      {
+        let offset = 0;
+        const chunkSize = 0.5 * 1024 * 1024;
+        const totalChunks = Math.ceil(file.size / chunkSize);
     
-      const reader = new FileReader();
+      if (!(ws.current && wsReady))
+            ws.current = new WebSocket("ws://localhost:8000");
+    
+        ws.current.onopen = () => {
+            ws.current.send(JSON.stringify({ filename: file.name, totalChunks }));
+            sendChunk();
+        };
+    
+        const sendChunk = () => {
+            if (offset < file.size)
+            {
+                const chunk = file.slice(offset, offset + chunkSize);
+                const reader = new FileReader();
+    
+                reader.onload = () => {
+                    ws.current.send(reader.result);
+                    offset += chunkSize;
+                    sendChunk();
+                };
+    
+                reader.readAsArrayBuffer(chunk);
+            }
 
-      reader.onload = () => {
-        ws.current.send(reader.result);
-        offset += chunkSize;
-        
-        if (offset < file.size)
-          sendChunk();
-
-        else
-          ws.current.send('EOF');
-      }
-
-      const sendChunk = () => {
-        const chunk = file.slice(offset, offset + chunkSize);
-        reader.readAsArrayBuffer(chunk);
-      }
-
-      sendChunk();
+            else
+            {
+              ws.current.send('EOF');
+              setTimeout(() => {
+                setIsUpload(false);
+              }, 1000);
+            }
+        };
+      };
     }
+
+    catch (error)
+    {}
   };
-  
+
   return (
     <>
-      <div className="menu">
+      {!isUpload && (
+        <div className="menu">
         <div className="home">
           <a href="LoginPage.html">Home</a>
         </div>
@@ -188,6 +205,7 @@ export default function Home() {
           </label>
         </div>
       </div>
+      )}
 
       <div className="body-container">
         <div className="container">
@@ -198,79 +216,85 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="content-body-container">
-        <div className="content-container">
-          <title1>Guide</title1>
-          <title2>AI</title2>
-          <ul>
-            <li>You can use your own language</li>
-            <li>Spell mistakes aren't corrected</li>
-            <li>For search in the inner database of attacks, you must use one of those keywords: id, name, phase name, description, detection</li>
-            <li>The keywords must be separate as words. To demonstrate, md5, hash, id, phase name</li>
-            <li>All keywords: id, description, phase_name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress.</li>
-            <li>Usage example for database search for all attacks with "windows" within its name: search in database for object with name windows</li>
-            <li>Usage example for virustotal search for md5 virus status: check md5 xxxxx</li>
-          </ul>
+      {!isUpload && (
+        <div className="content-body-container">
+          <div className="content-container">
+            <title1>Guide</title1>
+            <title2>AI</title2>
+            <ul>
+              <li>You can use your own language</li>
+              <li>Spell mistakes aren't corrected</li>
+              <li>For search in the inner database of attacks, you must use one of those keywords: id, name, phase name, description, detection</li>
+              <li>The keywords must be separate as words. To demonstrate, md5, hash, id, phase name</li>
+              <li>All keywords: id, description, phase_name, name, platform, detection, md5, sha1, sha256, sha512, bcrypt, aes, rsa, url, website, link, ip, ipaddress.</li>
+              <li>Usage example for database search for all attacks with "windows" within its name: search in database for object with name windows</li>
+              <li>Usage example for virustotal search for md5 virus status: check md5 xxxxx</li>
+            </ul>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="content-body-container">
-        <div className="content-container">
-          <h3>{searchType} Results - {finalSearch}</h3>
-          <ul>
-            {data.length > 0 ? (
-              data.map(({ id, name, description, x_mitre_platforms = [], phase_name, x_mitre_detection }, index) => (
-                <React.Fragment key={id}>
-                  <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                    <p style={{ flex: "1" }}>{name}</p>
-                    <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
-                      {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
-                        x_mitre_platforms.map((platform) => (
-                          <span className="icon-container" key={platform}>
-                            {platformIcons[platform] || platform}
-                            <span className="tooltip">{platform}</span>
-                          </span>
-                        ))
-                      ) : (
-                        <span>{data}</span>
+      {!isUpload && (
+        <div className="content-body-container">
+          <div className="content-container">
+            <h3>{searchType} Results - {finalSearch}</h3>
+            <ul>
+              {data.length > 0 ? (
+                data.map(({ id, name, description, x_mitre_platforms = [], phase_name, x_mitre_detection }, index) => (
+                  <React.Fragment key={id}>
+                    <li style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                      <p style={{ flex: "1" }}>{name}</p>
+                      <p style={{ flex: "2", display: "flex", justifyContent: "center" }}>
+                        {Array.isArray(x_mitre_platforms) && x_mitre_platforms.length > 0 ? (
+                          x_mitre_platforms.map((platform) => (
+                            <span className="icon-container" key={platform}>
+                              {platformIcons[platform] || platform}
+                              <span className="tooltip">{platform}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span>{data}</span>
+                        )}
+                      </p>
+                      <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
+                      {(x_mitre_platforms && x_mitre_platforms.length > 0) && (
+                        <button onClick={() => handleItemClicked(index)}>
+                          {selectedIndex === index ? "v" : "^"}
+                        </button>
                       )}
-                    </p>
-                    <p style={{ flex: "1", textAlign: "center" }}>{phase_name}</p>
-                    {(x_mitre_platforms && x_mitre_platforms.length > 0) && (
-                      <button onClick={() => handleItemClicked(index)}>
-                        {selectedIndex === index ? "v" : "^"}
-                      </button>
-                    )}
-                  </li>
-                  {selectedIndex === index && (
-                    <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
-                      <div>
-                        <h3>Id</h3>
-                        <p>{id}</p>
-                        <br />
-                        <h3>Description</h3>
-                        <p>{description}</p>
-                        <br />
-                        <h3>Detection</h3>
-                        <p>{x_mitre_detection}</p>
-                        <br />
-                      </div>
                     </li>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <p>No Results</p>
-            )}
-          </ul>
+                    {selectedIndex === index && (
+                      <li style={{ borderTop: "5px solid #ddd", borderBottom: "5px solid #ddd" }}>
+                        <div>
+                          <h3>Id</h3>
+                          <p>{id}</p>
+                          <br />
+                          <h3>Description</h3>
+                          <p>{description}</p>
+                          <br />
+                          <h3>Detection</h3>
+                          <p>{x_mitre_detection}</p>
+                          <br />
+                        </div>
+                      </li>
+                    )}
+                  </React.Fragment>
+                ))
+              ) : (
+                <p>No Results</p>
+              )}
+            </ul>
+          </div>
         </div>
-      </div>
+      )}
 
-      <button onClick={toggleSearchBar} className="fixed-button">
-        AI
-      </button>
-
-      {showSearchBar && (
+      {!isUpload && (
+        <button onClick={toggleSearchBar} className="fixed-button">
+          AI
+        </button>
+      )}
+      
+      {!isUpload && showSearchBar && (
         <div ref={searchBarRef} className="search-bar">
           <p></p>
           <input

@@ -34,38 +34,38 @@ class AI:
                 if key == 'type':
                     continue
 
-
-
                 if key in attack_keys:
                     return f'attack {key},{value}'
-                
-                if key not in attack_keys:
-                    r = requests.get('https://www.virustotal.com/vtapi/v2/file/report', params={'apikey': apikey, 'resource': value})
-                    return 'Malicious' if r.json().get('positives', 0) > 0 else 'Clean'
-                
 
-                url = 'https://www.virustotal.com/api/v3/'
-                headers = {'x-apikey': apikey}
+                url = ''
 
                 if key in encryption_types:
-                    url += f'files/'
+                    url = 'https://www.virustotal.com/vtapi/v2/file/report'
+                    params = {'apikey': apikey, 'resource': value}
 
                 elif key in url_like_words:
-                    value = base64.urlsafe_b64encode(value.encode()).decode().strip('=')
-                    url += f'urls/'
+                    url = 'https://www.virustotal.com/vtapi/v2/url/report'
+                    params = {'apikey': apikey, 'resource': value}
 
                 elif key in ip_address_like_words:
-                    url += 'ip_addresses/'
+                    url = 'https://www.virustotal.com/vtapi/v2/ip-address/report'
+                    params = {'apikey': apikey, 'resource': value}
 
-                r = requests.get(url + value, headers=headers)
 
-                print(r)
+                req = requests.get(url, params=params)
 
-                try:
-                    return 'clean' if r['data']['attributes']['last_analysis_stats']['malicious'] == 0 else 'Malicious'
+                if req.status_code != 200:
+                    return f'"{value}" is not a {key}'
                 
-                except Exception as e:
-                    return f'{value} is not a {key}'
+                response = req.json()
+
+                if key in encryption_types | url_like_words:
+                    return 'Malicious' if response['positives'] > 0 else 'Clean'
+
+                elif key in ip_address_like_words:
+                    return 'Malicious' if response['detected_urls'] else 'Clean' 
+                
+
                 
         return 'Unknown'
 
@@ -73,10 +73,11 @@ collection = MongoClient('mongodb://localhost:27017/')['ninjas_database']['attac
 
 async def handler(websocket, _):
     try:
+
         async for message in websocket:
             print(message)
             
-            try:
+            if message.startswith('{') and message.endswith('}'):
                 data = json.loads(message)
                 current_filename = data.get('filename')
                 file_path = os.path.join('uploads',current_filename)
@@ -85,6 +86,7 @@ async def handler(websocket, _):
 
                 while True:
                     chunk = await websocket.recv()
+
 
                     if chunk == 'EOF':
                         break
@@ -99,40 +101,36 @@ async def handler(websocket, _):
 
                 result: list = ['FILE']
             
-            except Exception as e:
-                print(f'Error1: {e}')
+            else:
+                msg = message.lower()
+                
+                if msg.startswith('ai search '):
+                    result = [AI.getVirustotalResults(msg[10:])]
 
-                if type(message) is str:
-                    msg = message.lower()
-                    
-                    if msg.startswith('ai search '):
-                        result = [AI.getVirustotalResults(msg[10:])]
+                    if 'attack ' in result[0]:
+                        result = result[0].replace('attack ', '').split(',')
                         
-                        if 'attack ' in result[0]:
-                            result = result[0].replace('attack ', '').split(',')
-                            
-                            if 'platform' in result[0].lower():
-                                attack_platforms: dict[str, str] = {'windows': 'Windows', 'linux': 'Linux', 'macos': 'macOS', 'mac-os': 'macOS', 'network': 'Network',
-                                            'pre': 'PRE', 'containers': 'Containers', 'iaas': 'IaaS', 'azure-ad': 'Azure AD',
-                                            'office-365': 'Office 365', 'saas': 'SaaS', 'google-workspace': 'Google Workspace'}                        
+                        if 'platform' in result[0].lower():
+                            attack_platforms: dict[str, str] = {'windows': 'Windows', 'linux': 'Linux', 'macos': 'macOS', 'mac-os': 'macOS', 'network': 'Network',
+                                        'pre': 'PRE', 'containers': 'Containers', 'iaas': 'IaaS', 'azure-ad': 'Azure AD',
+                                        'office-365': 'Office 365', 'saas': 'SaaS', 'google-workspace': 'Google Workspace'}                        
 
-                                query = {"x_mitre_platforms": {"$in": [attack_platforms[result[1]]]}}
+                            query = {"x_mitre_platforms": {"$in": [attack_platforms[result[1]]]}}
 
-                            else:
-                                query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
+                        else:
+                            query = {} if msg == 'all' else {result[0]: {'$regex': result[1], '$options': 'i'}}
 
-                            result = list(collection.find(query, {'_id': 0}))
-
-                    else:
-                        msg = msg.replace('normal search', '')
-                        query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
                         result = list(collection.find(query, {'_id': 0}))
 
-            await websocket.send(json.dumps(result))
+                else:
+                    msg = msg.replace('normal search', '')
+                    query = {} if msg == 'all' else {'description': {'$regex': msg.replace('normal search ', ''), '$options': 'i'}}
+                    result = list(collection.find(query, {'_id': 0}))
 
-    except Exception as e:
-        print(f'Error2: {e}')
-        await websocket.close()
+            await websocket.send(json.dumps(result))
+    
+    except websockets.exceptions.ConnectionClosedOK:
+        pass
 
 async def main():
     async with websockets.serve(handler, 'localhost', 8000):
