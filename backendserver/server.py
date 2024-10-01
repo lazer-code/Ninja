@@ -1,4 +1,4 @@
-import os, asyncio, websockets, json, requests, base64
+import os, asyncio, websockets, json, requests, time
 from pymongo import MongoClient
 
 attack_keys = {"id", "description", "phase name", "name", "platform", "detection"}
@@ -9,6 +9,7 @@ ip_address_like_words = {"ip", "ipaddress"}
 all_keys = attack_keys | encryption_types | url_like_words | ip_address_like_words
 
 current_filename = ''
+apikey = '3704563ee024370204fca6814514fe33d0713f10b4385bbd9d4d8f552fd2fec0'
 
 class AI:
     @staticmethod
@@ -28,8 +29,6 @@ class AI:
         res = AI.extract_key_value(sentence)
 
         if isinstance(res, dict):
-            apikey = '3704563ee024370204fca6814514fe33d0713f10b4385bbd9d4d8f552fd2fec0'
-
             for key, value in res.items():
                 if key == 'type':
                     continue
@@ -87,19 +86,47 @@ async def handler(websocket, _):
                 while True:
                     chunk = await websocket.recv()
 
-
                     if chunk == 'EOF':
                         break
 
                     file_content += chunk
 
-                if not os.path.exists('uploads'):
-                    os.makedirs('uploads')
+                upload_url = 'https://www.virustotal.com/api/v3/files'
+                headers = {'x-apikey': apikey}
+                files = {'file': file_content}
+                is_malicious = False
 
-                with open(file_path, 'wb') as file:
-                    file.write(file_content)
+                upload_response = requests.post(upload_url, headers=headers, files=files)
+                if upload_response.status_code == 200:
+                    file_id = upload_response.json()['data']['id']
+                    report_url = f'https://www.virustotal.com/api/v3/analyses/{file_id}'
+                    print(upload_response.json())
+                    for _ in range(10):
+                        report_response = requests.get(report_url, headers=headers)
+                        if report_response.status_code == 200:
+                            results = report_response.json()
+                            print(results)
+                            if results['data']['attributes']['status'] == 'completed':
+                                last_analysis_results = results['data']['attributes']['last_analysis_results']
+                                for engine, result in last_analysis_results.items():
+                                    if result['category'] == 'malicious':
+                                        is_malicious = True
+                                        print(f'Malicious detected by {engine}: {result["result"]}')
+                                
+                                relationships = results['data']['attributes'].get('relationships', {})
+                                print(f"Contacted Domains: {relationships.get('contacted_domains', {}).get('data', [])}")
+                                print(f"Contacted IP addresses: {relationships.get('contacted_ips', {}).get('data', [])}")
+                                print(f"Execution Parents: {relationships.get('execution_parents', {}).get('data', [])}")
+                                print(f"Bundled Files: {relationships.get('bundled_files', {}).get('data', [])}")
+                                print(f"Dropped Files: {relationships.get('dropped_files', {}).get('data', [])}")
+                                print(f"PE Resource Children: {relationships.get('pe_resource_children', {}).get('data', [])}")
+                                return
+                            
+                            else:
+                                print('File not yet processed, waiting...')
+                                time.sleep(15)
 
-                result: list = ['FILE']
+                result: list = [is_malicious]
             
             else:
                 msg = message.lower()
