@@ -27,7 +27,9 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [data, setData] = useState([]);
   const [wsReady, setWsReady] = useState(false);
-  const [isUpload, setIsUpload] = useState(false);
+  const [isFile, setIsFile] = useState(false);
+  const [dataDict, setDataDict] = useState({});
+  const [count, setCount] = useState(30);
 
   const ws = useRef(null);
   const searchBarRef = useRef(null);
@@ -77,6 +79,7 @@ export default function Home() {
       setFinalSearch("All");
 
     setSearchbar(value);
+    setIsFile(false);
     setSearchType("Normal Search");
     sendData(value, "Normal Search");
     setFinalSearch(value);
@@ -108,6 +111,21 @@ export default function Home() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [showSearchBar, handleClickOutside]);
 
+  useEffect(() => {
+    if (isFile && count > 0) {
+        const interval = setInterval(() => {
+            if (dataDict && Object.keys(dataDict).length > 0) {
+                clearInterval(interval);
+                setCount(-1);
+            } else {
+                setCount(prevCount => prevCount - 1);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }
+}, [isFile, count, dataDict]);
+
   const handleSendClick = () => {
     setSearchType("AI Search");
     sendData(AISearchbar, "AI Search");
@@ -119,93 +137,97 @@ export default function Home() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 650 * 1024 * 1024;
-    const size = file.size
-    setIsUpload(true);
+    const size = file.size;
+    setIsFile(true);
 
-    try
-    {
-      if (size > maxSize)
-      {
-        alert('File size exceeds 650 MB');
-        e.target.value = '';
-      }
-      
-      else
-      {
-        let offset = 0;
-        const chunkSize = 0.5 * 1024 * 1024;
-        const totalChunks = Math.ceil(file.size / chunkSize);
+    try {
+        if (size > maxSize) {
+            alert('File size exceeds 650 MB');
+            e.target.value = '';
+        } else {
+            let offset = 0;
+            const chunkSize = 0.5 * 1024 * 1024;
+            const totalChunks = Math.ceil(file.size / chunkSize);
     
-      if (!(ws.current && wsReady))
-            ws.current = new WebSocket("ws://localhost:8000");
+            if (!(ws.current && wsReady))
+                ws.current = new WebSocket("ws://localhost:8000");
     
-        ws.current.onopen = () => {
-            ws.current.send(JSON.stringify({ filename: file.name, totalChunks }));
-            sendChunk();
-        };
-    
-        const sendChunk = () => {
-            if (offset < file.size)
-            {
-                const chunk = file.slice(offset, offset + chunkSize);
-                const reader = new FileReader();
-    
-                reader.onload = () => {
-                    ws.current.send(reader.result);
-                    offset += chunkSize;
-                    sendChunk();
-                };
-    
-                reader.readAsArrayBuffer(chunk);
-            }
+            ws.current.onopen = () => {
+                ws.current.send(JSON.stringify({ filename: file.name, totalChunks }));
+                sendChunk();
+            };
 
-            else
-            {
-              ws.current.send('EOF');
-              setTimeout(() => {
-                setIsUpload(false);
-              }, 1000);
-            }
-        };
-      };
-    }
+            const sendChunk = () => {
+                if (offset < file.size) 
+                {
+                    const chunk = file.slice(offset, offset + chunkSize);
+                    const reader = new FileReader();
+    
+                    reader.onload = () => {
+                        ws.current.send(reader.result);
+                        offset += chunkSize;
+                        sendChunk();
+                    };
+    
+                    reader.readAsArrayBuffer(chunk);
+                }
 
-    catch (error)
-    {}
-  };
+                else 
+                {
+                  ws.current.send('EOF');
+                  setDataDict({});
+                  
+                  setTimeout(() => {
+                      setIsFile(true);
+                  }, 1000);
+                
+                }
+            };
+
+            ws.current.addEventListener("message", (event) => {
+                try {
+                    const parsedData = JSON.parse(event.data);
+                    if (parsedData) {
+                        setDataDict(parsedData);
+                    }
+                } catch (error) {
+                    console.error("Error parsing message:", error);
+                }
+            });
+        }
+    } catch (error) {}
+};
 
   return (
     <>
-      {!isUpload && (
-        <div className="menu">
-        <div className="home">
-          <a href="LoginPage.html">Home</a>
-        </div>
-        <div className="search">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchbar}
-            onChange={handleSearchBarChanged}
-            onFocus={handleSearchBarChanged}
-          />
-        </div>
-        
-        <div className="file-uploader">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="file-input"
-            id="fileinput"
-            accept="*"
-          />
-          <label className="file-label" onClick={() => fileInputRef.current.click()}>
-            Check A File
-          </label>
-        </div>
+      <div className="menu">
+      <div className="home">
+        <a href="LoginPage.html">Home</a>
       </div>
-      )}
+      <div className="search">
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchbar}
+          onChange={handleSearchBarChanged}
+          onFocus={handleSearchBarChanged}
+        />
+      </div>
+      
+      <div className="file-uploader">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="file-input"
+          id="fileinput"
+          accept="*"
+        />
+        <label className="file-label" onClick={() => fileInputRef.current.click()}>
+          Check A File
+        </label>
+      </div>
+    </div>
 
       <div className="body-container">
         <div className="container">
@@ -216,7 +238,7 @@ export default function Home() {
         </div>
       </div>
 
-      {!isUpload && (
+      {!isFile && (
         <div className="content-body-container">
           <div className="content-container">
             <title1>Guide</title1>
@@ -234,7 +256,7 @@ export default function Home() {
         </div>
       )}
 
-      {!isUpload && (
+      {!isFile && (
         <div className="content-body-container">
           <div className="content-container">
             <h3>{searchType} Results - {finalSearch}</h3>
@@ -288,13 +310,11 @@ export default function Home() {
         </div>
       )}
 
-      {!isUpload && (
-        <button onClick={toggleSearchBar} className="fixed-button">
-          AI
-        </button>
-      )}
-      
-      {!isUpload && showSearchBar && (
+      <button onClick={toggleSearchBar} className="fixed-button">
+        AI
+      </button>
+
+      {showSearchBar && (
         <div ref={searchBarRef} className="search-bar">
           <p></p>
           <input
@@ -308,6 +328,39 @@ export default function Home() {
               <img src="/icons/send.png" alt="Send" />
             </div>
           </button>
+        </div>
+      )}
+
+      {isFile && count >= 0 && (
+        <div className="content-body-container">
+        <div className="content-container">
+          <h1>Sandbox Results - Waiting ({count})</h1>
+        </div>
+      </div>
+      )}
+
+      {isFile && count <= 0 &&(
+        <div className="content-body-container">
+          <div className="content-container">
+            <h1>Sandbox Results</h1>
+            <div className="lists-container">
+              {Object.keys(dataDict).map((key) => (
+                <div key={key}>
+                  <br/>
+                  <h3>{key.replace(/_/g, ' ').toUpperCase()} ({dataDict[key].length})</h3>
+                  {dataDict[key].length > 0 ? (
+                    <ul>
+                      {dataDict[key].map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>None</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </>
