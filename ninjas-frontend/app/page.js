@@ -29,7 +29,7 @@ export default function Home() {
   const [wsReady, setWsReady] = useState(false);
   const [isFile, setIsFile] = useState(false);
   const [dataDict, setDataDict] = useState({});
-  const [count, setCount] = useState(30);
+  const [count, setCount] = useState(120);
 
   const ws = useRef(null);
   const searchBarRef = useRef(null);
@@ -152,6 +152,7 @@ export default function Home() {
         {
             alert('File size exceeds 650 MB');
             e.target.value = '';
+            setIsFile(false);
         }
 
         else
@@ -190,6 +191,8 @@ export default function Home() {
                   
                   setTimeout(() => {
                       setIsFile(true);
+                      setData({});
+                      setCount(120);
                   }, 1000);
                 
                 }
@@ -215,8 +218,6 @@ export default function Home() {
     }
 
     catch (error) {}
-
-
 };
 
   return (
@@ -248,8 +249,8 @@ export default function Home() {
           Check A File
         </label>
       </div>
-    </div>
 
+    </div>
       <div className="body-container">
         <div className="container">
           <div className="overlay">
@@ -352,7 +353,7 @@ export default function Home() {
         </div>
       )}
 
-      {isFile && count >= 0 && (
+      {dataDict == {} && isFile && count >= 0 && (
         <div className="content-body-container">
         <div className="content-container">
           <h1>Sandbox Results - Waiting ({count})</h1>
@@ -360,7 +361,7 @@ export default function Home() {
       </div>
       )}
 
-      {isFile && count <= 0 &&(
+      {dataDict != {} && isFile && count <= 0 &&(
         <div className="content-body-container">
           <div className="content-container">
             <h1>Sandbox Results</h1>

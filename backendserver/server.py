@@ -67,15 +67,21 @@ class AI:
                 url = f'https://www.virustotal.com/vtapi/v2/{key_type}/report'
                 params = {'apikey': apikey, 'resource': value}
 
-                # Getting the response
-                req = requests.get(url, params=params)
+                while True:
+                    # Getting the response
+                    req = requests.get(url, params=params)
 
-                # Raising value is not a type of "key" error
-                if req.status_code != 200:
-                    return f'{value} is not a {key}'
+                    # Raising value is not a type of "key" error
+                    if req.status_code != 200:
+                        return f'{value} is not a {key}'
+                    
+                    response = req.json()
                 
-                response = req.json()
+                    if response['response_code'] != 0:
+                        break
 
+                    time.sleep(5)
+                
                 # Checking whethere the searched data is clean, malicious or unknown
                 if key in encryption_types | url_like_words:
                     return 'Malicious' if response['positives'] > 0 else 'Clean'
@@ -225,17 +231,22 @@ async def handler(websocket, _):
             with open (file_path, 'wb') as file:
                 file.write(file_content)
             
-            # Getting the id and the url of the file from upload_file function
-            id, url = await upload_file(file_path, current_filename)
+            try:
+                await asyncio.wait_for(asyncio.sleep(120), timeout=120)
+                # Getting the id and the url of the file from upload_file function
+                id, url = await upload_file(file_path, current_filename)
 
-            # Deleting the file
-            os.remove(file_path)
-            
-            # Getting the sha256 base id from wait_for_upload_completed function
-            sha_id = await wait_for_upload_completed(id, url)
+                # Deleting the file
+                os.remove(file_path)
+                
+                # Getting the sha256 base id from wait_for_upload_completed function
+                sha_id = await wait_for_upload_completed(id, url)
 
-            # Setting the result to the relations dictionary from get_relations function
-            result = await get_relations(sha_id)
+                # Setting the result to the relations dictionary from get_relations function
+                result = await get_relations(sha_id)
+
+            except asyncio.TimeoutError:
+                result = {'Error': ['Took too long to scan']}
         
         # Checking if it is a normal or AI based search
         else:
