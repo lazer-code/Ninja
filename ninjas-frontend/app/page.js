@@ -112,14 +112,17 @@ export default function Home() {
   }, [showSearchBar, handleClickOutside]);
 
   useEffect(() => {
-    if (isFile && count > 0) {
+    if (isFile && count > 0)
+    {
         const interval = setInterval(() => {
-            if (dataDict && Object.keys(dataDict).length > 0) {
+            if (dataDict && Object.keys(dataDict).length > 0)
+            {
                 clearInterval(interval);
                 setCount(-1);
-            } else {
-                setCount(prevCount => prevCount - 1);
             }
+            
+            else
+                setCount(prevCount => prevCount - 1);
         }, 1000);
 
         return () => clearInterval(interval);
@@ -137,14 +140,22 @@ export default function Home() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 650 * 1024 * 1024;
-    const size = file.size;
-    setIsFile(true);
 
-    try {
-        if (size > maxSize) {
+    try
+    {
+      const size = file.size;
+      setIsFile(true);
+
+      try
+      {
+        if (size > maxSize)
+        {
             alert('File size exceeds 650 MB');
             e.target.value = '';
-        } else {
+        }
+
+        else
+        {
             let offset = 0;
             const chunkSize = 0.5 * 1024 * 1024;
             const totalChunks = Math.ceil(file.size / chunkSize);
@@ -185,17 +196,27 @@ export default function Home() {
             };
 
             ws.current.addEventListener("message", (event) => {
-                try {
+                try
+                {
                     const parsedData = JSON.parse(event.data);
-                    if (parsedData) {
+                    if (parsedData)
                         setDataDict(parsedData);
-                    }
-                } catch (error) {
+                }
+                
+                catch (error)
+                {
                     console.error("Error parsing message:", error);
                 }
             });
         }
-    } catch (error) {}
+      }
+    
+      catch (error) {}
+    }
+
+    catch (error) {}
+
+
 };
 
   return (
