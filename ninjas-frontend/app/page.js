@@ -144,6 +144,7 @@ export default function Home() {
     try
     {
       const size = file.size;
+      setDataDict({});
       setIsFile(true);
 
       try
@@ -353,15 +354,16 @@ export default function Home() {
         </div>
       )}
 
-      {dataDict == {} && isFile && count >= 0 && (
+      {isFile && Object.keys(dataDict).length == 0 && (
         <div className="content-body-container">
         <div className="content-container">
           <h1>Sandbox Results - Waiting ({count})</h1>
+          <h2>{count <= 0 ? 'Took to long' : ''}</h2>
         </div>
       </div>
       )}
 
-      {dataDict != {} && isFile && count <= 0 &&(
+      {Object.keys(dataDict).length > 0 && isFile&&(
         <div className="content-body-container">
           <div className="content-container">
             <h1>Sandbox Results</h1>

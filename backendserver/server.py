@@ -118,6 +118,8 @@ async def upload_file(path, name):
     # Getting the response from virustotal
     response = requests.post(url, files=files, headers=headers)
 
+    print(response.text)
+
     return response.json()['data']['id'], response.json()['data']['links']['self']
 
 
@@ -136,10 +138,13 @@ async def wait_for_upload_completed(id, url):
     # Getting the server's response
     response = requests.get(url, headers=headers)
 
+    print(response.text)
+
     # Waiting until the scan is completed
     while response.status_code == 200 and response.json()['data']['attributes']['status'] != 'completed':
         time.sleep(20)
         response = requests.get(url, headers=headers)
+        print(response.text)
 
     return response.json()['meta']['file_info']['sha256']
 
@@ -168,6 +173,8 @@ async def get_relations(id):
 
         # Getting the response from virustotal
         response = requests.get(url, headers=headers)
+
+        print(response.text)
 
         response_dict = response.json()
 
@@ -201,6 +208,13 @@ async def get_relations(id):
     return relations_responses
 
 
+async def countdown():
+    for i in range(120, -1, -1):
+        await asyncio.sleep(1)
+
+        if i == 0:
+            return 0
+        
 async def handler(websocket, _):
     async for message in websocket:
         print(f'message: {message}')
@@ -231,22 +245,17 @@ async def handler(websocket, _):
             with open (file_path, 'wb') as file:
                 file.write(file_content)
             
-            try:
-                await asyncio.wait_for(asyncio.sleep(120), timeout=120)
-                # Getting the id and the url of the file from upload_file function
-                id, url = await upload_file(file_path, current_filename)
+            # Getting the id and the url of the file from upload_file function
+            id, url = await upload_file(file_path, current_filename)
 
-                # Deleting the file
-                os.remove(file_path)
-                
-                # Getting the sha256 base id from wait_for_upload_completed function
-                sha_id = await wait_for_upload_completed(id, url)
+            # Deleting the file
+            os.remove(file_path)
 
-                # Setting the result to the relations dictionary from get_relations function
-                result = await get_relations(sha_id)
+            # Getting the sha256 base id from wait_for_upload_completed function
+            sha_id = await wait_for_upload_completed(id, url)
 
-            except asyncio.TimeoutError:
-                result = {'Error': ['Took too long to scan']}
+            # Setting the result to the relations dictionary from get_relations function
+            result = await get_relations(sha_id)
         
         # Checking if it is a normal or AI based search
         else:
@@ -286,6 +295,8 @@ async def handler(websocket, _):
 
                 # Getting the results from the database
                 result = list(collection.find(query, {'_id': 0}))
+
+        print(result)
 
         # Sending the result
         await websocket.send(json.dumps(result))
