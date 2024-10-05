@@ -42,7 +42,7 @@ export default function Home() {
   const sendData = (query, type) => {
     if (ws.current && wsReady)
       ws.current.send(`${type} ${query || "All"}`);
-
+    
     else
     {
       ws.current = new WebSocket("ws://localhost:8000");
