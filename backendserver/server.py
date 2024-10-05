@@ -77,28 +77,23 @@ async def upload_file(path, name):
         mime_type = 'application/octet-stream'
     
     url = "https://www.virustotal.com/api/v3/files"
-
-    files = { "file": (path, open(path, "rb"), mime_type) }
+    
+    files = { "file": (name, open(path, "rb"), mime_type) }
     headers = {"accept": "application/json", "x-apikey": apikey}
 
     response = requests.post(url, files=files, headers=headers)
-    print(f'upload response: {response.text}')
 
-    return response.json()['data']['id']
+    return response.json()['data']['id'], response.json()['data']['links']['self']
 
 
-async def wait_for_upload_completed(id):
-    print(id)
-    url = f"https://www.virustotal.com/api/v3/files/{id}"
+async def wait_for_upload_completed(id, url):
     headers = {"accept": "application/json", "x-apikey": apikey}
 
     response = requests.get(url, headers=headers)
-    print(f'status response: {response.text}')
 
-    while response.status_code == 200 and response.json()['data']['attributes']['status'] == 'queued':
+    while response.status_code == 200 and response.json()['data']['attributes']['status'] != 'completed':
         time.sleep(20)
         response = requests.get(url, headers=headers)
-        print(f'status response: {response.text}')
 
     return response.json()['meta']['file_info']['sha256']
 
@@ -115,7 +110,6 @@ async def get_relations(id):
 
         response = requests.get(url, headers=headers)
         response_dict = response.json()
-        print(f'relation response: {response.text}')
 
         names = []
 
@@ -169,11 +163,11 @@ async def handler(websocket, _):
             with open (file_path, 'wb') as file:
                 file.write(file_content)
             
-            id = await upload_file(file_path, current_filename)
+            id, url = await upload_file(file_path, current_filename)
 
             os.remove(file_path)
             
-            sha_id = await wait_for_upload_completed(id)
+            sha_id = await wait_for_upload_completed(id, url)
 
             result = await get_relations(sha_id)
         
